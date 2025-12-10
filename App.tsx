@@ -222,7 +222,11 @@ export default function App() {
         handleUpdateNode(id, { status: NodeStatus.SUCCESS, resultUrl });
       } else if (node.type === NodeType.VIDEO) {
         const parentNode = nodes.find(n => n.id === node.parentId);
-        const imageBase64 = parentNode?.resultUrl;
+
+        // Use lastFrame if it's a video parent, otherwise resultUrl (for Image-to-Video)
+        const imageBase64 = (parentNode?.type === NodeType.VIDEO && parentNode.lastFrame)
+          ? parentNode.lastFrame
+          : parentNode?.resultUrl;
 
         const resultUrl = await generateVideo({
           prompt: node.prompt,
@@ -230,7 +234,15 @@ export default function App() {
           aspectRatio: '16:9',
           resolution: node.resolution
         });
-        handleUpdateNode(id, { status: NodeStatus.SUCCESS, resultUrl });
+
+        let lastFrame = undefined;
+        try {
+          lastFrame = await extractVideoLastFrame(resultUrl);
+        } catch (err) {
+          console.error("Frame extraction failed", err);
+        }
+
+        handleUpdateNode(id, { status: NodeStatus.SUCCESS, resultUrl, lastFrame });
       } else {
         setTimeout(() => {
           handleUpdateNode(id, { status: NodeStatus.SUCCESS, resultUrl: "https://picsum.photos/800/600" });
@@ -252,6 +264,40 @@ export default function App() {
         handleUpdateNode(id, { status: NodeStatus.ERROR, errorMessage: e.message || "Generation failed" });
       }
     }
+  };
+
+  const extractVideoLastFrame = (videoUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.src = videoUrl;
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.currentTime = 1e101; // Seek to end
+
+      video.onloadeddata = () => {
+        // Some browsers might not seek until data loaded
+        if (video.duration) {
+          video.currentTime = video.duration;
+        }
+      };
+
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve(''); // Fallback
+        }
+      };
+
+      video.onerror = () => {
+        resolve('');
+      };
+    });
   };
 
   const handleAddNext = (nodeId: string, direction: 'left' | 'right') => {
@@ -475,7 +521,13 @@ export default function App() {
                 key={node.id}
                 data={node}
                 // Pass input URL (e.g., from parent) for things like Image-to-Video preview
-                inputUrl={nodes.find(n => n.id === node.parentId)?.resultUrl}
+                inputUrl={(() => {
+                  const parent = nodes.find(n => n.id === node.parentId);
+                  if (parent?.type === NodeType.VIDEO && parent.lastFrame) {
+                    return parent.lastFrame;
+                  }
+                  return parent?.resultUrl;
+                })()}
                 onUpdate={handleUpdateNode}
                 onGenerate={handleGenerate}
                 onAddNext={handleAddNext}
