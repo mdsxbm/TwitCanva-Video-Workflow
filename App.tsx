@@ -15,6 +15,15 @@ export default function App() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ isOpen: false, x: 0, y: 0, type: 'global' });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
+  // Connection State
+  const [isDraggingConnection, setIsDraggingConnection] = useState(false);
+  const [connectionStart, setConnectionStart] = useState<{ nodeId: string, handle: 'left' | 'right' } | null>(null);
+  const [tempConnectionEnd, setTempConnectionEnd] = useState<{ x: number, y: number } | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [selectedConnection, setSelectedConnection] = useState<{ parentId: string, childId: string } | null>(null);
+  // Track start time to distinguish click vs drag on connectors
+  const dragStartTime = useRef<number>(0);
+
   // Refs for panning & dragging
   const isPanning = useRef(false);
   const dragNodeRef = useRef<{ id: string, startX: number, startY: number } | null>(null);
@@ -51,13 +60,19 @@ export default function App() {
           setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
           setSelectedNodeId(null);
           setContextMenu(prev => ({ ...prev, isOpen: false }));
+        } else if (selectedConnection) {
+          // Delete connection (clear parentId)
+          setNodes(prev => prev.map(n =>
+            n.id === selectedConnection.childId ? { ...n, parentId: undefined } : n
+          ));
+          setSelectedConnection(null);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId]);
+  }, [selectedNodeId, selectedConnection]);
 
   // --- Canvas Navigation & Dragging ---
 
@@ -83,46 +98,7 @@ export default function App() {
     setContextMenu(prev => ({ ...prev, isOpen: false }));
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    const dx = e.clientX - lastMousePos.current.x;
-    const dy = e.clientY - lastMousePos.current.y;
-    lastMousePos.current = { x: e.clientX, y: e.clientY };
-
-    // 1. Handle Node Dragging
-    if (dragNodeRef.current) {
-      const nodeId = dragNodeRef.current.id;
-      // Adjust delta by zoom level so the node moves 1:1 with mouse
-      const zoomAdjustedDx = dx / viewport.zoom;
-      const zoomAdjustedDy = dy / viewport.zoom;
-
-      setNodes(prev => prev.map(n => {
-        if (n.id === nodeId) {
-          return { ...n, x: n.x + zoomAdjustedDx, y: n.y + zoomAdjustedDy };
-        }
-        return n;
-      }));
-      return;
-    }
-
-    // 2. Handle Canvas Panning
-    if (isPanning.current) {
-      setViewport(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (isPanning.current) {
-      isPanning.current = false;
-    }
-    if (dragNodeRef.current) {
-      dragNodeRef.current = null;
-    }
-
-    // Release capture if held
-    if (e.target instanceof HTMLElement && e.target.hasPointerCapture(e.pointerId)) {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    }
-  };
+  // Old handlers removed - merged into handleGlobalPointerMove/Up
 
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
@@ -167,7 +143,110 @@ export default function App() {
     });
   };
 
-  // --- Node Logic ---
+  // --- Connection Dragging ---
+
+  const handleConnectorPointerDown = (e: React.PointerEvent, nodeId: string, side: 'left' | 'right') => {
+    e.stopPropagation();
+    e.preventDefault();
+    dragStartTime.current = Date.now();
+    setIsDraggingConnection(true);
+    setConnectionStart({ nodeId, handle: side });
+    setTempConnectionEnd({ x: e.clientX, y: e.clientY });
+  };
+
+  const checkHoveredNode = (mouseX: number, mouseY: number) => {
+    const canvasX = (mouseX - viewport.x) / viewport.zoom;
+    const canvasY = (mouseY - viewport.y) / viewport.zoom;
+
+    const found = nodes.find(n => {
+      if (n.id === connectionStart?.nodeId) return false;
+      return (
+        canvasX >= n.x && canvasX <= n.x + 340 &&
+        canvasY >= n.y && canvasY <= n.y + 400
+      );
+    });
+    setHoveredNodeId(found ? found.id : null);
+  };
+
+  // --- Canvas Navigation & Dragging Consoldiated ---
+
+  const handleGlobalPointerMove = (e: React.PointerEvent) => {
+    if (isDraggingConnection) {
+      setTempConnectionEnd({ x: e.clientX, y: e.clientY });
+      checkHoveredNode(e.clientX, e.clientY);
+      return;
+    }
+
+    // 1. Handle Node Dragging
+    if (dragNodeRef.current) {
+      const nodeId = dragNodeRef.current.id;
+      const zoomAdjustedDx = e.movementX / viewport.zoom;
+      const zoomAdjustedDy = e.movementY / viewport.zoom;
+
+      setNodes(prev => prev.map(n => {
+        if (n.id === nodeId) {
+          return { ...n, x: n.x + zoomAdjustedDx, y: n.y + zoomAdjustedDy };
+        }
+        return n;
+      }));
+      return;
+    }
+
+    // 2. Handle Canvas Panning
+    if (isPanning.current) {
+      setViewport(prev => ({
+        ...prev,
+        x: prev.x + e.movementX,
+        y: prev.y + e.movementY
+      }));
+    }
+  };
+
+  const handleGlobalPointerUp = (e: React.PointerEvent) => {
+    // Handle Connection Drop
+    if (isDraggingConnection && connectionStart) {
+      const dragDuration = Date.now() - dragStartTime.current;
+
+      if (dragDuration < 200 && !hoveredNodeId) {
+        handleAddNext(connectionStart.nodeId, connectionStart.handle);
+      } else if (hoveredNodeId) {
+        if (connectionStart.handle === 'right') {
+          setNodes(prev => prev.map(n =>
+            n.id === hoveredNodeId ? { ...n, parentId: connectionStart.nodeId } : n
+          ));
+        } else {
+          setNodes(prev => prev.map(n =>
+            n.id === connectionStart.nodeId ? { ...n, parentId: hoveredNodeId } : n
+          ));
+        }
+      }
+
+      setIsDraggingConnection(false);
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
+      setHoveredNodeId(null);
+      return;
+    }
+
+    // Stop Panning
+    if (isPanning.current) {
+      isPanning.current = false;
+    }
+
+    // Stop Node Dragging
+    if (dragNodeRef.current) {
+      dragNodeRef.current = null;
+    }
+
+    // Release capture
+    if (e.target instanceof HTMLElement && e.target.hasPointerCapture(e.pointerId)) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch (err) {
+        // Ignore
+      }
+    }
+  };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).id === 'canvas-background') {
@@ -407,14 +486,21 @@ export default function App() {
 
   // --- Rendering Helpers ---
 
+  const handleEdgeClick = (e: React.MouseEvent, parentId: string, childId: string) => {
+    e.stopPropagation();
+    setSelectedConnection({ parentId, childId });
+    setSelectedNodeId(null); // Deselect node logic
+  };
+
   const renderConnections = () => {
-    return nodes.map(node => {
+    // Existing Connections
+    const existing = nodes.map(node => {
       if (!node.parentId) return null;
       const parent = nodes.find(p => p.id === node.parentId);
       if (!parent) return null;
 
       const startX = parent.x + 340;
-      const startY = parent.y + 150;
+      const startY = parent.y + 150; // Approx mid-height. Dynamic would be better but fixed is ok.
       const endX = node.x;
       const endY = node.y + 150;
 
@@ -424,16 +510,70 @@ export default function App() {
 
       const path = `M ${startX} ${startY} C ${cp1x} ${startY}, ${cp2x} ${endY}, ${endX} ${endY}`;
 
+      const isSelected = selectedConnection?.childId === node.id;
+
       return (
-        <path
-          key={`${parent.id}-${node.id}`}
-          d={path}
-          stroke="#333"
-          strokeWidth="2"
-          fill="none"
-        />
+        <g key={`${parent.id}-${node.id}`} onClick={(e) => handleEdgeClick(e, parent.id, node.id)} className="cursor-pointer group pointer-events-auto">
+          {/* Invisible wide stroke for easier clicking */}
+          <path d={path} stroke="transparent" strokeWidth="20" fill="none" />
+          {/* Visible stroke */}
+          <path
+            d={path}
+            stroke={isSelected ? "#fff" : "#333"}
+            strokeWidth={isSelected ? "3" : "2"}
+            fill="none"
+            className="transition-colors group-hover:stroke-neutral-500"
+            style={{ filter: isSelected ? 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' : 'none' }}
+          />
+        </g>
       );
     });
+
+    // Temporary Connection (Drag)
+    let tempLine = null;
+    if (isDraggingConnection && connectionStart && tempConnectionEnd) {
+      const startNode = nodes.find(n => n.id === connectionStart.nodeId);
+      if (startNode) {
+        // Calculate start pos in canvas space
+        // If handle is right: x + width. If left: x
+
+        // NOTE: We need to use "screen" coords for temp line if we render it in SVG overlay 
+        // OR we project temp mouse to canvas coords.
+        // Since the SVG is transformed by viewport (Wait! SVG in existing code is NOT transformed??)
+        // Let's check line 441 in previous view.. 
+        // It says <svg ... top-0 left-0 w-full h-full> ... inside the "canvas-background" DIV?
+        // BUT the DIV has "transform" applied on line 423.
+        // So the SVG IS transformed.
+        // THUS, we need to convert tempConnectionEnd (screen pixels) into Canvas Space.
+
+        const startX = connectionStart.handle === 'right' ? startNode.x + 340 : startNode.x;
+        const startY = startNode.y + 150;
+
+        const endX = (tempConnectionEnd.x - viewport.x) / viewport.zoom;
+        const endY = (tempConnectionEnd.y - viewport.y) / viewport.zoom;
+
+        const dist = Math.abs(endX - startX);
+        // Curvature based on handle direction? 
+        // If right handle: cp1 goes right. If left handle: cp1 goes left.
+        const cpDir = connectionStart.handle === 'right' ? 1 : -1;
+
+        const cp1x = startX + (dist / 2 * cpDir);
+        const cp2x = endX - (dist / 2 * cpDir);
+
+        const path = `M ${startX} ${startY} C ${cp1x} ${startY}, ${cp2x} ${endY}, ${endX} ${endY}`;
+
+        tempLine = (
+          <path d={path} stroke="#fff" strokeWidth="2" strokeDasharray="5,5" fill="none" className="pointer-events-none opacity-50" />
+        );
+      }
+    }
+
+    return (
+      <>
+        {existing}
+        {tempLine}
+      </>
+    );
   };
 
   return (
@@ -485,8 +625,8 @@ export default function App() {
         ref={canvasRef}
         className="w-full h-full cursor-grab active:cursor-grabbing relative overflow-hidden"
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        onPointerMove={handleGlobalPointerMove}
+        onPointerUp={handleGlobalPointerUp}
         onWheel={handleWheel}
         onDoubleClick={handleDoubleClick}
       >
@@ -535,6 +675,8 @@ export default function App() {
                 onNodePointerDown={handleNodePointerDown}
                 onContextMenu={handleNodeContextMenu}
                 onSelect={setSelectedNodeId}
+                onConnectorDown={handleConnectorPointerDown}
+                isHoveredForConnection={hoveredNodeId === node.id}
               />
             ))}
           </div>

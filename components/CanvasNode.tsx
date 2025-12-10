@@ -24,6 +24,8 @@ interface CanvasNodeProps {
   onSelect: (id: string) => void;
   onNodePointerDown: (e: React.PointerEvent, id: string) => void;
   onContextMenu: (e: React.MouseEvent, id: string) => void;
+  onConnectorDown: (e: React.PointerEvent, id: string, side: 'left' | 'right') => void;
+  isHoveredForConnection?: boolean;
 }
 
 const IMAGE_RATIOS = [
@@ -43,7 +45,9 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   selected,
   onSelect,
   onNodePointerDown,
-  onContextMenu
+  onContextMenu,
+  onConnectorDown,
+  isHoveredForConnection
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
@@ -105,9 +109,8 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
     >
       {/* Left Connector */}
       <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); onAddNext(data.id, 'left'); }}
-        className="absolute -left-12 w-10 h-10 rounded-full border border-neutral-700 bg-[#0f0f0f] text-neutral-400 hover:text-white hover:border-neutral-500 flex items-center justify-center transition-all opacity-0 group-hover/node:opacity-100 z-10"
+        onPointerDown={(e) => { e.stopPropagation(); onConnectorDown(e, data.id, 'left'); }}
+        className="absolute -left-12 w-10 h-10 rounded-full border border-neutral-700 bg-[#0f0f0f] text-neutral-400 hover:text-white hover:border-neutral-500 flex items-center justify-center transition-all opacity-0 group-hover/node:opacity-100 z-10 cursor-crosshair"
       >
         <Plus size={18} />
       </button>
@@ -293,9 +296,8 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
 
       {/* Right Connector (Add Next Node) */}
       <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); onAddNext(data.id, 'right'); }}
-        className="absolute -right-12 w-12 h-12 rounded-full border border-neutral-700 bg-[#0f0f0f] text-neutral-400 hover:text-white hover:border-neutral-500 flex items-center justify-center transition-all opacity-0 group-hover/node:opacity-100 z-10"
+        onPointerDown={(e) => { e.stopPropagation(); onConnectorDown(e, data.id, 'right'); }}
+        className="absolute -right-12 w-12 h-12 rounded-full border border-neutral-700 bg-[#0f0f0f] text-neutral-400 hover:text-white hover:border-neutral-500 flex items-center justify-center transition-all opacity-0 group-hover/node:opacity-100 z-10 cursor-crosshair"
       >
         <Plus size={24} />
       </button>
