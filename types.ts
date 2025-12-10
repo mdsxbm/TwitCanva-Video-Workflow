@@ -25,7 +25,7 @@ export interface NodeData {
   resultUrl?: string; // Image URL or Video URL
   parentId?: string; // For connecting lines
   errorMessage?: string;
-  
+
   // Settings
   model: string;
   aspectRatio: string;
@@ -36,8 +36,8 @@ export interface ContextMenuState {
   isOpen: boolean;
   x: number;
   y: number;
-  type: 'global' | 'node-connector'; // 'global' = double click on canvas, 'node-connector' = clicking + on a node
-  sourceNodeId?: string; // If 'node-connector', which node originated the click
+  type: 'global' | 'node-connector' | 'node-options'; // 'global' = double click on canvas, 'node-connector' = clicking + on a node, 'node-options' = right click
+  sourceNodeId?: string; // If 'node-connector' or 'node-options', which node originated the click
   connectorSide?: 'left' | 'right';
 }
 

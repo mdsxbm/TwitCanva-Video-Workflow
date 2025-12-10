@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   Sparkles,
   Loader2,
   Maximize2,
   ArrowRight,
   Banana,
   Settings2,
-  Image as ImageIcon, 
+  Image as ImageIcon,
   Plus,
   Check,
   ChevronDown,
@@ -23,6 +23,7 @@ interface CanvasNodeProps {
   selected: boolean;
   onSelect: (id: string) => void;
   onNodePointerDown: (e: React.PointerEvent, id: string) => void;
+  onContextMenu: (e: React.MouseEvent, id: string) => void;
 }
 
 const IMAGE_RATIOS = [
@@ -33,15 +34,16 @@ const VIDEO_RESOLUTIONS = [
   "Auto", "1080p", "512p"
 ];
 
-export const CanvasNode: React.FC<CanvasNodeProps> = ({ 
-  data, 
+export const CanvasNode: React.FC<CanvasNodeProps> = ({
+  data,
   inputUrl,
-  onUpdate, 
-  onGenerate, 
+  onUpdate,
+  onGenerate,
   onAddNext,
   selected,
   onSelect,
-  onNodePointerDown
+  onNodePointerDown,
+  onContextMenu
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
@@ -73,35 +75,36 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   const getAspectRatioStyle = () => {
     if (data.type === NodeType.VIDEO) {
       // Default video player aspect ratio
-      return { aspectRatio: '16/9' }; 
+      return { aspectRatio: '16/9' };
     }
-    
+
     // For images, use the selected ratio or 1:1 default
     const ratio = data.aspectRatio || 'Auto';
     if (ratio === 'Auto') return { aspectRatio: '1/1' };
-    
+
     const [w, h] = ratio.split(':');
     return { aspectRatio: `${w}/${h}` };
   };
 
-  const currentSizeLabel = data.type === NodeType.VIDEO 
-    ? (data.resolution || "Auto") 
+  const currentSizeLabel = data.type === NodeType.VIDEO
+    ? (data.resolution || "Auto")
     : (data.aspectRatio || "Auto");
 
   const sizeOptions = data.type === NodeType.VIDEO ? VIDEO_RESOLUTIONS : IMAGE_RATIOS;
 
   return (
-    <div 
+    <div
       className={`absolute flex items-center group/node touch-none pointer-events-auto`}
-      style={{ 
+      style={{
         transform: `translate(${data.x}px, ${data.y}px)`,
         transition: 'box-shadow 0.2s',
         zIndex: selected ? 50 : 10
       }}
       onPointerDown={(e) => onNodePointerDown(e, data.id)}
+      onContextMenu={(e) => onContextMenu(e, data.id)}
     >
       {/* Left Connector */}
-      <button 
+      <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onAddNext(data.id, 'left'); }}
         className="absolute -left-12 w-10 h-10 rounded-full border border-neutral-700 bg-[#0f0f0f] text-neutral-400 hover:text-white hover:border-neutral-500 flex items-center justify-center transition-all opacity-0 group-hover/node:opacity-100 z-10"
@@ -110,40 +113,38 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
       </button>
 
       {/* Main Node Card */}
-      <div 
-        className={`relative w-[340px] rounded-2xl bg-[#0f0f0f] border transition-all duration-200 flex flex-col shadow-2xl ${
-          selected ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-transparent'
-        }`}
+      <div
+        className={`relative w-[340px] rounded-2xl bg-[#0f0f0f] border transition-all duration-200 flex flex-col shadow-2xl ${selected ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-transparent'
+          }`}
       >
         {/* Header (Type Label) - Always visible, dimmed if not selected */}
-        <div className={`absolute -top-7 left-0 text-xs px-2 py-0.5 rounded font-medium transition-colors ${
-            selected ? 'bg-blue-500/20 text-blue-200' : 'text-neutral-600'
-        }`}>
-            {data.type}
+        <div className={`absolute -top-7 left-0 text-xs px-2 py-0.5 rounded font-medium transition-colors ${selected ? 'bg-blue-500/20 text-blue-200' : 'text-neutral-600'
+          }`}>
+          {data.type}
         </div>
 
         {/* Content Area - Full bleed when unselected */}
         <div className={`transition-all duration-200 ${!selected ? 'p-0 rounded-2xl overflow-hidden' : 'p-1'}`}>
           {/* Result View */}
           {isSuccess && data.resultUrl ? (
-            <div 
-                className={`relative w-full bg-black group/image ${!selected ? '' : 'rounded-xl overflow-hidden'}`}
-                style={getAspectRatioStyle()}
+            <div
+              className={`relative w-full bg-black group/image ${!selected ? '' : 'rounded-xl overflow-hidden'}`}
+              style={getAspectRatioStyle()}
             >
               {data.type === NodeType.VIDEO ? (
-                 <video src={data.resultUrl} controls autoPlay loop className="w-full h-full object-cover" onPointerDown={(e) => e.stopPropagation()} />
+                <video src={data.resultUrl} controls autoPlay loop className="w-full h-full object-cover" onPointerDown={(e) => e.stopPropagation()} />
               ) : (
-                 <img src={data.resultUrl} alt="Generated" className="w-full h-full object-cover pointer-events-none" />
+                <img src={data.resultUrl} alt="Generated" className="w-full h-full object-cover pointer-events-none" />
               )}
-              
+
               {/* Overlay Actions */}
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/image:opacity-100 transition-opacity">
-                 <button 
-                    onPointerDown={(e) => e.stopPropagation()}
-                    className="p-1.5 bg-black/50 hover:bg-black/80 rounded-lg text-white backdrop-blur-md"
-                 >
-                   <Maximize2 size={14} />
-                 </button>
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="p-1.5 bg-black/50 hover:bg-black/80 rounded-lg text-white backdrop-blur-md"
+                >
+                  <Maximize2 size={14} />
+                </button>
               </div>
             </div>
           ) : (
@@ -152,61 +153,61 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
                 ${isLoading ? 'animate-pulse' : ''} 
                 ${!selected ? 'rounded-2xl' : 'rounded-xl border border-dashed border-neutral-800'}`
             }>
-               {/* Input Image Preview for Video Nodes */}
-               {data.type === NodeType.VIDEO && inputUrl && (
-                  <div className="absolute inset-0 z-0">
-                    <img src={inputUrl} alt="Input Frame" className="w-full h-full object-cover opacity-30 blur-sm" />
-                    <div className="absolute inset-0 bg-black/40" />
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 rounded text-[10px] text-white font-medium flex items-center gap-1">
-                      <ImageIcon size={10} />
-                      Input Frame
-                    </div>
+              {/* Input Image Preview for Video Nodes */}
+              {data.type === NodeType.VIDEO && inputUrl && (
+                <div className="absolute inset-0 z-0">
+                  <img src={inputUrl} alt="Input Frame" className="w-full h-full object-cover opacity-30 blur-sm" />
+                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 rounded text-[10px] text-white font-medium flex items-center gap-1">
+                    <ImageIcon size={10} />
+                    Input Frame
                   </div>
-               )}
+                </div>
+              )}
 
-               {isLoading ? (
-                 <div className="relative z-10 flex flex-col items-center gap-2">
-                   <Loader2 size={32} className="animate-spin text-blue-400" />
-                   <span className="text-xs text-neutral-500 font-medium">Generating...</span>
-                 </div>
-               ) : (
-                 <div className="relative z-10 flex flex-col items-center gap-3">
-                   <div className="text-neutral-700">
-                     {data.type === NodeType.VIDEO ? <Film size={40} /> : <ImageIcon size={40} />}
-                   </div>
-                   {selected && (
-                     <>
-                        <div className="text-neutral-500 text-sm font-medium">
-                          {data.type === NodeType.VIDEO && inputUrl ? "Ready to animate" : (data.type === NodeType.VIDEO ? "Waiting for input..." : "Try to:")}
+              {isLoading ? (
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                  <Loader2 size={32} className="animate-spin text-blue-400" />
+                  <span className="text-xs text-neutral-500 font-medium">Generating...</span>
+                </div>
+              ) : (
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                  <div className="text-neutral-700">
+                    {data.type === NodeType.VIDEO ? <Film size={40} /> : <ImageIcon size={40} />}
+                  </div>
+                  {selected && (
+                    <>
+                      <div className="text-neutral-500 text-sm font-medium">
+                        {data.type === NodeType.VIDEO && inputUrl ? "Ready to animate" : (data.type === NodeType.VIDEO ? "Waiting for input..." : "Try to:")}
+                      </div>
+                      {data.type !== NodeType.VIDEO && (
+                        <div className="flex flex-col gap-1 text-xs text-neutral-600 text-center">
+                          <span>• Image to Image</span>
+                          <span>• Image to Video</span>
                         </div>
-                        {data.type !== NodeType.VIDEO && (
-                          <div className="flex flex-col gap-1 text-xs text-neutral-600 text-center">
-                              <span>• Image to Image</span>
-                              <span>• Image to Video</span>
-                          </div>
-                        )}
-                     </>
-                   )}
-                 </div>
-               )}
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Control Panel / Prompt Input - Only show if selected */}
         {selected && (
-          <div 
+          <div
             className="p-3 bg-[#1a1a1a] border-t border-neutral-800 rounded-b-2xl cursor-default"
             onPointerDown={(e) => e.stopPropagation()} // Allow selecting text/interacting without dragging
             onClick={() => onSelect(data.id)} // Ensure clicking here selects the node
           >
-            <textarea 
+            <textarea
               className="w-full bg-transparent text-sm text-white placeholder-neutral-600 outline-none resize-none mb-3 font-light"
               placeholder={data.type === NodeType.VIDEO && inputUrl ? "Describe how to animate this frame..." : "Describe what you want to generate..."}
               rows={2}
               value={data.prompt}
               onChange={(e) => onUpdate(data.id, { prompt: e.target.value })}
-              // Always allow editing, even if loading or success, to support re-generation
+            // Always allow editing, even if loading or success, to support re-generation
             />
 
             {data.errorMessage && (
@@ -222,7 +223,7 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
                 <button className="flex items-center gap-1.5 text-xs text-neutral-300 hover:bg-neutral-800 px-2 py-1.5 rounded-lg transition-colors">
                   <Banana size={12} className="text-yellow-400" />
                   <span className="font-medium">
-                     {data.type === NodeType.VIDEO ? "Veo 3.1" : "Banana Pro"}
+                    {data.type === NodeType.VIDEO ? "Veo 3.1" : "Banana Pro"}
                   </span>
                   <Settings2 size={12} className="ml-1 opacity-50" />
                 </button>
@@ -231,13 +232,13 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
               <div className="flex items-center gap-2">
                 {/* Unified Size/Ratio Dropdown */}
                 <div className="relative" ref={dropdownRef}>
-                  <button 
+                  <button
                     onClick={() => setShowSizeDropdown(!showSizeDropdown)}
                     className="flex items-center gap-1.5 text-xs font-medium bg-[#252525] hover:bg-[#333] border border-neutral-700 text-white px-3 py-1.5 rounded-lg transition-colors"
                   >
                     {data.type === NodeType.VIDEO && currentSizeLabel === 'Auto' ? 'Auto' : currentSizeLabel}
                     {currentSizeLabel === 'Auto' && data.type !== NodeType.VIDEO && (
-                       <span className="text-[10px] text-neutral-400 ml-0.5 opacity-50">1:1</span>
+                      <span className="text-[10px] text-neutral-400 ml-0.5 opacity-50">1:1</span>
                     )}
                   </button>
 
@@ -245,15 +246,14 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
                   {showSizeDropdown && (
                     <div className="absolute bottom-full mb-2 right-0 w-32 bg-[#252525] border border-neutral-700 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-60 overflow-y-auto">
                       <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">
-                         {data.type === NodeType.VIDEO ? 'Resolution' : 'Aspect Ratio'}
+                        {data.type === NodeType.VIDEO ? 'Resolution' : 'Aspect Ratio'}
                       </div>
                       {sizeOptions.map(option => (
                         <button
                           key={option}
                           onClick={() => handleSizeSelect(option)}
-                          className={`flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${
-                            currentSizeLabel === option ? 'text-blue-400' : 'text-neutral-300'
-                          }`}
+                          className={`flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${currentSizeLabel === option ? 'text-blue-400' : 'text-neutral-300'
+                            }`}
                         >
                           <span>{option}</span>
                           {currentSizeLabel === option && <Check size={12} />}
@@ -262,16 +262,15 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
                     </div>
                   )}
                 </div>
-                
+
                 {/* Generate Button - Active even after success to allow re-generation */}
                 {!isLoading && (
-                  <button 
+                  <button
                     onClick={(e) => { e.stopPropagation(); onGenerate(data.id); }}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
-                        isSuccess 
-                            ? 'bg-green-600 hover:bg-green-500 text-white shadow-green-900/20' 
-                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
-                    }`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-105 ${isSuccess
+                      ? 'bg-green-600 hover:bg-green-500 text-white shadow-green-900/20'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20'
+                      }`}
                   >
                     <Sparkles size={14} fill={isSuccess ? "currentColor" : "currentColor"} />
                   </button>
@@ -280,7 +279,7 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
             </div>
 
             {/* Advanced Settings Drawer */}
-            <div 
+            <div
               className="mt-2 pt-2 border-t border-neutral-800"
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
@@ -293,7 +292,7 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
       </div>
 
       {/* Right Connector (Add Next Node) */}
-      <button 
+      <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onAddNext(data.id, 'right'); }}
         className="absolute -right-12 w-12 h-12 rounded-full border border-neutral-700 bg-[#0f0f0f] text-neutral-400 hover:text-white hover:border-neutral-500 flex items-center justify-center transition-all opacity-0 group-hover/node:opacity-100 z-10"
