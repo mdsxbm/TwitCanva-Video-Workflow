@@ -58,16 +58,21 @@ app.post('/api/generate-image', async (req, res) => {
 
         const parts = [];
 
+        // Handle imageBase64 as either single string or array of strings
         if (imageBase64) {
-            const match = imageBase64.match(/^data:(image\/\w+);base64,/);
-            const mimeType = match ? match[1] : "image/png";
-            const base64Clean = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-            parts.push({
-                inlineData: {
-                    mimeType: mimeType,
-                    data: base64Clean
-                }
-            });
+            const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64];
+
+            for (const img of images) {
+                const match = img.match(/^data:(image\/\w+);base64,/);
+                const mimeType = match ? match[1] : "image/png";
+                const base64Clean = img.replace(/^data:image\/\w+;base64,/, "");
+                parts.push({
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: base64Clean
+                    }
+                });
+            }
         }
 
         parts.push({ text: prompt });

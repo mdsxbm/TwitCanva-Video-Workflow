@@ -33,41 +33,50 @@ export const useGeneration = ({ nodes, updateNode }: UseGenerationProps) => {
 
         try {
             if (node.type === NodeType.IMAGE || node.type === NodeType.IMAGE_EDITOR) {
-                // Get parent image for image-to-image generation
-                let imageBase64: string | undefined;
+                // Collect ALL parent images for multi-input generation
+                const imageBase64s: string[] = [];
 
-                // Traverse parent chain to find an image source
-                let currentParentId = node.parentId;
-                while (currentParentId && !imageBase64) {
-                    const parent = nodes.find(n => n.id === currentParentId);
-                    if (parent?.resultUrl) {
-                        imageBase64 = parent.resultUrl;
-                    } else {
-                        // Continue up the chain
-                        currentParentId = parent?.parentId;
+                // Get images from all direct parents
+                if (node.parentIds && node.parentIds.length > 0) {
+                    for (const parentId of node.parentIds) {
+                        let currentId: string | undefined = parentId;
+
+                        // Traverse up the chain to find an image source
+                        while (currentId && imageBase64s.length < 14) { // Gemini 3 Pro limit
+                            const parent = nodes.find(n => n.id === currentId);
+                            if (parent?.resultUrl) {
+                                imageBase64s.push(parent.resultUrl);
+                                break; // Found image for this parent chain
+                            } else {
+                                // Continue up this chain
+                                currentId = parent?.parentIds?.[0];
+                            }
+                        }
                     }
                 }
 
-                // Generate image
+                // Generate image with all parent images
                 const resultUrl = await generateImage({
                     prompt: node.prompt,
                     aspectRatio: node.aspectRatio,
                     resolution: node.resolution,
-                    imageBase64
+                    imageBase64: imageBase64s.length > 0 ? imageBase64s : undefined
                 });
                 updateNode(id, { status: NodeStatus.SUCCESS, resultUrl });
 
             } else if (node.type === NodeType.VIDEO) {
-                // Get parent image for video generation
+                // Get first parent image for video generation
                 let imageBase64: string | undefined;
-                const parent = nodes.find(n => n.id === node.parentId);
+                if (node.parentIds && node.parentIds.length > 0) {
+                    const parent = nodes.find(n => n.id === node.parentIds![0]);
 
-                if (parent?.type === NodeType.VIDEO && parent.lastFrame) {
-                    // Use last frame from parent video
-                    imageBase64 = parent.lastFrame;
-                } else if (parent?.resultUrl) {
-                    // Use parent image directly
-                    imageBase64 = parent.resultUrl;
+                    if (parent?.type === NodeType.VIDEO && parent.lastFrame) {
+                        // Use last frame from parent video
+                        imageBase64 = parent.lastFrame;
+                    } else if (parent?.resultUrl) {
+                        // Use parent image directly
+                        imageBase64 = parent.resultUrl;
+                    }
                 }
 
                 // Generate video

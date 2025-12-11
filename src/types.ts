@@ -25,7 +25,7 @@ export interface NodeData {
   status: NodeStatus;
   resultUrl?: string; // Image URL or Video URL
   lastFrame?: string; // For Video nodes: base64/url of the last frame to use as input for next node
-  parentId?: string; // For connecting lines
+  parentIds?: string[]; // For connecting lines (supports multiple inputs)
   groupId?: string; // ID of the group this node belongs to
   errorMessage?: string;
 

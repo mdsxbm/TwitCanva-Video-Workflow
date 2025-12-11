@@ -123,14 +123,30 @@ export const useConnectionDragging = () => {
         else if (hoveredNodeId && hoveredSide) {
             if (hoveredSide === 'left') {
                 // Connecting to LEFT connector = target receives input (target is child)
-                onUpdateNodes(prev => prev.map(n =>
-                    n.id === hoveredNodeId ? { ...n, parentId: connectionStart.nodeId } : n
-                ));
+                // Add source as a parent to target node
+                onUpdateNodes(prev => prev.map(n => {
+                    if (n.id === hoveredNodeId) {
+                        const existingParents = n.parentIds || [];
+                        // Prevent duplicate connections
+                        if (!existingParents.includes(connectionStart.nodeId)) {
+                            return { ...n, parentIds: [...existingParents, connectionStart.nodeId] };
+                        }
+                    }
+                    return n;
+                }));
             } else {
                 // Connecting to RIGHT connector = target provides output (target is parent)
-                onUpdateNodes(prev => prev.map(n =>
-                    n.id === connectionStart.nodeId ? { ...n, parentId: hoveredNodeId } : n
-                ));
+                // Add target as a parent to source node
+                onUpdateNodes(prev => prev.map(n => {
+                    if (n.id === connectionStart.nodeId) {
+                        const existingParents = n.parentIds || [];
+                        // Prevent duplicate connections
+                        if (!existingParents.includes(hoveredNodeId)) {
+                            return { ...n, parentIds: [...existingParents, hoveredNodeId] };
+                        }
+                    }
+                    return n;
+                }));
             }
         }
 
@@ -157,9 +173,13 @@ export const useConnectionDragging = () => {
     const deleteSelectedConnection = (onUpdateNodes: (updater: (prev: NodeData[]) => NodeData[]) => void) => {
         if (!selectedConnection) return false;
 
-        onUpdateNodes(prev => prev.map(n =>
-            n.id === selectedConnection.childId ? { ...n, parentId: undefined } : n
-        ));
+        onUpdateNodes(prev => prev.map(n => {
+            if (n.id === selectedConnection.childId) {
+                const existingParents = n.parentIds || [];
+                return { ...n, parentIds: existingParents.filter(pid => pid !== selectedConnection.parentId) };
+            }
+            return n;
+        }));
         setSelectedConnection(null);
         return true;
     };

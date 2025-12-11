@@ -377,11 +377,11 @@ export default function App() {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
 
-    // Get image from parent node if connected
+    // Get image from parent node if connected (use first parent for editor)
     let imageUrl: string | undefined;
 
-    if (node.parentId) {
-      const parentNode = nodes.find(n => n.id === node.parentId);
+    if (node.parentIds && node.parentIds.length > 0) {
+      const parentNode = nodes.find(n => n.id === node.parentIds![0]);
       if (parentNode?.resultUrl) {
         imageUrl = parentNode.resultUrl;
       }
@@ -415,36 +415,41 @@ export default function App() {
   // ============================================================================
 
   const renderConnections = () => {
-    const existing = nodes.map(node => {
-      if (!node.parentId) return null;
-      const parent = nodes.find(n => n.id === node.parentId);
-      if (!parent) return null;
+    // For each node, render connections to all its parents
+    const connections: React.ReactNode[] = [];
 
-      const startX = parent.x + 340;
-      const startY = parent.y + 150;
-      const endX = node.x;
-      const endY = node.y + 150;
+    nodes.forEach(node => {
+      if (!node.parentIds || node.parentIds.length === 0) return;
 
-      const path = calculateConnectionPath(startX, startY, endX, endY, 'right');
-      const isSelected = selectedConnection?.childId === node.id;
+      node.parentIds.forEach(parentId => {
+        const parent = nodes.find(n => n.id === parentId);
+        if (!parent) return;
 
-      return (
-        <g
-          key={`${parent.id}-${node.id}`}
-          onClick={(e) => handleEdgeClick(e, parent.id, node.id)}
-          className="cursor-pointer group pointer-events-auto"
-        >
-          <path d={path} stroke="transparent" strokeWidth="20" fill="none" />
-          <path
-            d={path}
-            stroke={isSelected ? "#fff" : "#333"}
-            strokeWidth={isSelected ? "3" : "2"}
-            fill="none"
-            className="transition-colors group-hover:stroke-neutral-500"
-            style={{ filter: isSelected ? 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' : 'none' }}
-          />
-        </g>
-      );
+        const startX = parent.x + 340;
+        const startY = parent.y + 150;
+        const endX = node.x;
+        const endY = node.y + 150;
+
+        const path = calculateConnectionPath(startX, startY, endX, endY, 'right');
+        const isSelected = selectedConnection?.parentId === parentId && selectedConnection?.childId === node.id;
+
+        connections.push(
+          <g
+            key={`${parent.id}-${node.id}`}
+            onClick={(e) => handleEdgeClick(e, parent.id, node.id)}
+            className="cursor-pointer group pointer-events-auto"
+          >
+            <path d={path} stroke="transparent" strokeWidth="20" fill="none" />
+            <path
+              d={path}
+              stroke={isSelected ? "#fff" : "#333"}
+              strokeWidth="2"
+              fill="none"
+              className={`transition-colors ${!isSelected ? 'group-hover:stroke-white' : ''}`}
+            />
+          </g>
+        );
+      });
     });
 
     // Temporary Connection (Drag)
@@ -480,7 +485,7 @@ export default function App() {
 
     return (
       <>
-        {existing}
+        {connections}
         {tempLine}
       </>
     );
@@ -565,7 +570,9 @@ export default function App() {
                 key={node.id}
                 data={node}
                 inputUrl={(() => {
-                  const parent = nodes.find(n => n.id === node.parentId);
+                  // Get first parent's result for display (multiple inputs handled in generation)
+                  if (!node.parentIds || node.parentIds.length === 0) return undefined;
+                  const parent = nodes.find(n => n.id === node.parentIds![0]);
                   if (parent?.type === NodeType.VIDEO && parent.lastFrame) {
                     return parent.lastFrame;
                   }
@@ -723,7 +730,7 @@ export default function App() {
               model: 'Banana Pro',
               aspectRatio: 'Auto',
               resolution: 'Auto',
-              parentId: sourceId
+              parentIds: [sourceId]
             });
           }
 

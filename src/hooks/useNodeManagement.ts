@@ -48,7 +48,7 @@ export const useNodeManagement = () => {
             model: 'Banana Pro',
             aspectRatio: 'Auto',
             resolution: 'Auto',
-            parentId
+            parentIds: parentId ? [parentId] : []
         };
 
         setNodes(prev => [...prev, newNode]);
@@ -132,7 +132,7 @@ export const useNodeManagement = () => {
                         model: 'Banana Pro',
                         aspectRatio: 'Auto',
                         resolution: 'Auto',
-                        parentId: contextMenu.sourceNodeId
+                        parentIds: contextMenu.sourceNodeId ? [contextMenu.sourceNodeId] : []
                     };
                 } else {
                     // Prepend: New -> Source
@@ -145,10 +145,12 @@ export const useNodeManagement = () => {
                         status: NodeStatus.IDLE,
                         model: 'Banana Pro',
                         aspectRatio: 'Auto',
-                        resolution: 'Auto'
+                        resolution: 'Auto',
+                        parentIds: []
                     };
-                    // Update source to point to new node
-                    updateNode(contextMenu.sourceNodeId, { parentId: newNodeId });
+                    // Update source to add new node as parent
+                    const existingParentIds = sourceNode.parentIds || [];
+                    updateNode(contextMenu.sourceNodeId, { parentIds: [...existingParentIds, newNodeId] });
                 }
 
                 setNodes(prev => [...prev, newNode]);
