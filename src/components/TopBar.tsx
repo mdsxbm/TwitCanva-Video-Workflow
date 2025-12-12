@@ -124,12 +124,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                         💾 Save
                     </button>
                     <button className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors">
-                        Gift Earn Tapies
-                    </button>
-                    <button className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors">
-                        200
-                    </button>
-                    <button className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors">
                         ✨ Community
                     </button>
                     <button className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200">
