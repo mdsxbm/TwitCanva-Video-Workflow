@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { NodeData, Viewport } from '../types';
+import { NodeData, NodeType, Viewport } from '../types';
 
 interface ConnectionStart {
     nodeId: string;
@@ -106,16 +106,31 @@ export const useConnectionDragging = () => {
     /**
      * Completes connection drag and creates connection if valid
      * Returns true if connection was handled, false otherwise
+     * @param nodes - All nodes for validation
      * @param onConnectionMade - Optional callback called with (parentId, childId) when connection is created
      */
     const completeConnectionDrag = (
         onAddNext: (nodeId: string, direction: 'left' | 'right') => void,
         onUpdateNodes: (updater: (prev: NodeData[]) => NodeData[]) => void,
+        nodes: NodeData[],
         onConnectionMade?: (parentId: string, childId: string) => void
     ): boolean => {
         if (!isDraggingConnection || !connectionStart) return false;
 
         const dragDuration = Date.now() - dragStartTime.current;
+
+        /**
+         * Check if a connection is valid
+         * Text nodes can only be parents (output), never children (receive input)
+         */
+        const isValidConnection = (parentId: string, childId: string): boolean => {
+            const childNode = nodes.find(n => n.id === childId);
+            // Text nodes cannot receive connections (cannot be children)
+            if (childNode?.type === NodeType.TEXT) {
+                return false;
+            }
+            return true;
+        };
 
         // Short click - open menu
         if (dragDuration < 200 && !hoveredNodeId) {
@@ -125,6 +140,17 @@ export const useConnectionDragging = () => {
         else if (hoveredNodeId && hoveredSide) {
             if (hoveredSide === 'left') {
                 // Connecting to LEFT connector = target receives input (target is child)
+                // source is parent, hoveredNode is child
+                if (!isValidConnection(connectionStart.nodeId, hoveredNodeId)) {
+                    // Invalid connection - reset and return
+                    setIsDraggingConnection(false);
+                    setConnectionStart(null);
+                    setTempConnectionEnd(null);
+                    setHoveredNodeId(null);
+                    setHoveredSide(null);
+                    return true;
+                }
+
                 // Add source as a parent to target node
                 onUpdateNodes(prev => prev.map(n => {
                     if (n.id === hoveredNodeId) {
@@ -140,6 +166,17 @@ export const useConnectionDragging = () => {
                 onConnectionMade?.(connectionStart.nodeId, hoveredNodeId);
             } else {
                 // Connecting to RIGHT connector = target provides output (target is parent)
+                // hoveredNode is parent, source is child
+                if (!isValidConnection(hoveredNodeId, connectionStart.nodeId)) {
+                    // Invalid connection - reset and return
+                    setIsDraggingConnection(false);
+                    setConnectionStart(null);
+                    setTempConnectionEnd(null);
+                    setHoveredNodeId(null);
+                    setHoveredSide(null);
+                    return true;
+                }
+
                 // Add target as a parent to source node
                 onUpdateNodes(prev => prev.map(n => {
                     if (n.id === connectionStart.nodeId) {

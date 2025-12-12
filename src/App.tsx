@@ -367,7 +367,7 @@ export default function App() {
     }
 
     // 2. Handle Connection Drop
-    if (completeConnectionDrag(handleAddNext, setNodes, handleConnectionMade)) {
+    if (completeConnectionDrag(handleAddNext, setNodes, nodes, handleConnectionMade)) {
       releasePointerCapture(e);
       return;
     }
