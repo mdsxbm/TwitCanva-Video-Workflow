@@ -73,8 +73,9 @@ export const useWorkflow = ({
 
     /**
      * Load workflow from server
+     * Returns the loaded workflow's node count and title for tracking
      */
-    const handleLoadWorkflow = useCallback(async (id: string) => {
+    const handleLoadWorkflow = useCallback(async (id: string): Promise<{ nodeCount: number; title: string } | null> => {
         try {
             const response = await fetch(`http://localhost:3001/api/workflows/${id}`);
             if (response.ok) {
@@ -87,10 +88,16 @@ export const useWorkflow = ({
                 setSelectedNodeIds([]);
                 setIsWorkflowPanelOpen(false);
                 console.log('Workflow loaded:', workflow.id);
+                // Return info for tracking
+                return {
+                    nodeCount: (workflow.nodes || []).length,
+                    title: workflow.title || 'Untitled'
+                };
             }
         } catch (error) {
             console.error('Failed to load workflow:', error);
         }
+        return null;
     }, [setNodes, setSelectedNodeIds, setCanvasTitle, setEditingTitleValue]);
 
     /**
@@ -109,6 +116,13 @@ export const useWorkflow = ({
         setIsWorkflowPanelOpen(false);
     }, []);
 
+    /**
+     * Reset workflow ID (for creating a new canvas)
+     */
+    const resetWorkflowId = useCallback(() => {
+        setWorkflowId(null);
+    }, []);
+
     return {
         workflowId,
         isWorkflowPanelOpen,
@@ -116,6 +130,7 @@ export const useWorkflow = ({
         handleSaveWorkflow,
         handleLoadWorkflow,
         handleWorkflowsClick,
-        closeWorkflowPanel
+        closeWorkflowPanel,
+        resetWorkflowId
     };
 };

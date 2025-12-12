@@ -167,7 +167,8 @@ export default function App() {
     handleSaveWorkflow,
     handleLoadWorkflow,
     handleWorkflowsClick,
-    closeWorkflowPanel
+    closeWorkflowPanel,
+    resetWorkflowId
   } = useWorkflow({
     nodes,
     groups,
@@ -178,6 +179,43 @@ export default function App() {
     setCanvasTitle,
     setEditingTitleValue
   });
+
+  // Simple dirty flag for unsaved changes tracking
+  const [isDirty, setIsDirty] = React.useState(false);
+  const hasUnsavedChanges = isDirty && nodes.length > 0;
+
+  // Mark as dirty when nodes change (after initial load)
+  const prevNodesLengthRef = React.useRef(nodes.length);
+  const prevTitleRef = React.useRef(canvasTitle);
+  React.useEffect(() => {
+    if (nodes.length !== prevNodesLengthRef.current || canvasTitle !== prevTitleRef.current) {
+      setIsDirty(true);
+      prevNodesLengthRef.current = nodes.length;
+      prevTitleRef.current = canvasTitle;
+    }
+  }, [nodes.length, canvasTitle]);
+
+  // Update saved state after workflow save
+  const handleSaveWithTracking = async () => {
+    await handleSaveWorkflow();
+    setIsDirty(false);
+  };
+
+  // Load workflow and update tracking
+  const handleLoadWithTracking = async (id: string) => {
+    await handleLoadWorkflow(id);
+    setIsDirty(false);
+  };
+
+  // Create new canvas
+  const handleNewCanvas = () => {
+    setNodes([]);
+    setSelectedNodeIds([]);
+    setCanvasTitle('Untitled Canvas');
+    setEditingTitleValue('Untitled Canvas');
+    resetWorkflowId(); // Important: ensures new workflow gets a new ID
+    setIsDirty(false);
+  };
 
   // Image editor modal
   const {
@@ -609,7 +647,7 @@ export default function App() {
       <WorkflowPanel
         isOpen={isWorkflowPanelOpen}
         onClose={closeWorkflowPanel}
-        onLoadWorkflow={handleLoadWorkflow}
+        onLoadWorkflow={handleLoadWithTracking}
         currentWorkflowId={workflowId || undefined}
         panelY={workflowPanelY}
       />
@@ -631,7 +669,9 @@ export default function App() {
         setCanvasTitle={setCanvasTitle}
         setIsEditingTitle={setIsEditingTitle}
         setEditingTitleValue={setEditingTitleValue}
-        onSave={handleSaveWorkflow}
+        onSave={handleSaveWithTracking}
+        onNew={handleNewCanvas}
+        hasUnsavedChanges={hasUnsavedChanges}
       />
 
       {/* Canvas */}
