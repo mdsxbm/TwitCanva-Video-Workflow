@@ -35,6 +35,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     const [assets, setAssets] = useState<AssetMetadata[]>([]);
     const [loading, setLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [imageCounts, setImageCounts] = useState<number>(0);
+    const [videoCounts, setVideoCounts] = useState<number>(0);
 
     // Fetch assets when panel opens or tab changes
     useEffect(() => {
@@ -50,6 +52,12 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             if (response.ok) {
                 const data = await response.json();
                 setAssets(data);
+                // Update counts
+                if (activeTab === 'images') {
+                    setImageCounts(data.length);
+                } else {
+                    setVideoCounts(data.length);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch assets:', error);
@@ -112,7 +120,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                             onClick={() => setActiveTab('images')}
                         >
                             <ImageIcon size={16} />
-                            Image History ({activeTab === 'images' ? assets.length : '...'})
+                            Image History ({imageCounts})
                         </button>
                         <button
                             className={`text-sm font-medium transition-colors pb-1 flex items-center gap-2 ${activeTab === 'videos'
@@ -122,7 +130,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                             onClick={() => setActiveTab('videos')}
                         >
                             <Video size={16} />
-                            Video History
+                            Video History ({videoCounts})
                         </button>
                     </div>
                     <button

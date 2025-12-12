@@ -97,7 +97,8 @@ app.get('/api/workflows', async (req, res) => {
                 title: workflow.title,
                 createdAt: workflow.createdAt,
                 updatedAt: workflow.updatedAt,
-                nodeCount: workflow.nodes?.length || 0
+                nodeCount: workflow.nodes?.length || 0,
+                coverUrl: workflow.coverUrl
             };
         });
         workflows.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -134,6 +135,27 @@ app.delete('/api/workflows/:id', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error("Delete workflow error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update workflow cover
+app.put('/api/workflows/:id/cover', async (req, res) => {
+    try {
+        const { coverUrl } = req.body;
+        const filePath = path.join(WORKFLOWS_DIR, `${req.params.id}.json`);
+
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: "Workflow not found" });
+        }
+
+        const workflowData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        workflowData.coverUrl = coverUrl;
+        fs.writeFileSync(filePath, JSON.stringify(workflowData, null, 2));
+
+        res.json({ success: true, coverUrl });
+    } catch (error) {
+        console.error("Update cover error:", error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -230,12 +252,26 @@ app.post('/api/generate-video', async (req, res) => {
         };
 
         if (imageBase64) {
+            // Extract MIME type from data URL or default to jpeg (more compatible)
+            const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+            let mimeType = match ? match[1] : 'image/jpeg';
             const base64Clean = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+
+            // Log for debugging
+            console.log(`Video Gen: Using image with mimeType: ${mimeType}, base64 length: ${base64Clean.length}`);
+
+            // Veo requires specific format - use image/jpeg for best compatibility
+            if (mimeType === 'image/png' || mimeType === 'image/webp') {
+                mimeType = 'image/jpeg';
+            }
+
             args.image = {
                 imageBytes: base64Clean,
-                mimeType: 'image/png'
+                mimeType: mimeType
             };
         }
+
+        console.log('Calling Veo API with args:', { ...args, image: args.image ? { mimeType: args.image.mimeType, length: args.image.imageBytes?.length } : undefined });
 
         let operation = await ai.models.generateVideos(args);
 

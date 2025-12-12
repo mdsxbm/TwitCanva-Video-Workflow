@@ -26,6 +26,8 @@ interface CanvasNodeProps {
   onOpenEditor?: (nodeId: string) => void;
   onUpload?: (nodeId: string, imageDataUrl: string) => void;
   onExpand?: (imageUrl: string) => void;
+  onDragStart?: (nodeId: string, hasContent: boolean) => void;
+  onDragEnd?: () => void;
   // Text node callbacks
   onWriteContent?: (nodeId: string) => void;
   onTextToVideo?: (nodeId: string) => void;
@@ -46,6 +48,8 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   onOpenEditor,
   onUpload,
   onExpand,
+  onDragStart,
+  onDragEnd,
   onWriteContent,
   onTextToVideo
 }) => {
@@ -242,6 +246,8 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
           getAspectRatioStyle={getAspectRatioStyle}
           onUpload={onUpload}
           onExpand={onExpand}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
           onWriteContent={onWriteContent}
           onTextToVideo={onTextToVideo}
           onUpdate={onUpdate}

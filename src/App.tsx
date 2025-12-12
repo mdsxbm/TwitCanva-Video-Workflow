@@ -264,6 +264,19 @@ export default function App() {
     setIsChatOpen(false);
   };
 
+  // Track if a node with content is being dragged (for chat highlight)
+  const [isDraggingNodeToChat, setIsDraggingNodeToChat] = useState(false);
+
+  const handleNodeDragStart = (nodeId: string, hasContent: boolean) => {
+    if (hasContent) {
+      setIsDraggingNodeToChat(true);
+    }
+  };
+
+  const handleNodeDragEnd = () => {
+    setIsDraggingNodeToChat(false);
+  };
+
   /**
    * Handle selecting an asset from history - creates new node with the image/video
    */
@@ -719,7 +732,7 @@ export default function App() {
 
       {/* Agent Chat */}
       <ChatBubble onClick={toggleChat} isOpen={isChatOpen} />
-      <ChatPanel isOpen={isChatOpen} onClose={closeChat} />
+      <ChatPanel isOpen={isChatOpen} onClose={closeChat} isDraggingNode={isDraggingNodeToChat} />
 
       {/* Top Bar */}
       <TopBar
@@ -814,6 +827,8 @@ export default function App() {
                 onOpenEditor={handleOpenImageEditor}
                 onUpload={handleUpload}
                 onExpand={handleExpandImage}
+                onDragStart={handleNodeDragStart}
+                onDragEnd={handleNodeDragEnd}
                 onWriteContent={handleWriteContent}
                 onTextToVideo={handleTextToVideo}
               />
@@ -982,7 +997,7 @@ export default function App() {
         onUpdate={updateNode}
       />
 
-      {/* Fullscreen Image Preview Modal */}
+      {/* Fullscreen Media Preview Modal */}
       {expandedImageUrl && (
         <div
           className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[100] cursor-pointer"
@@ -996,12 +1011,22 @@ export default function App() {
               <path d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img
-            src={expandedImageUrl}
-            alt="Fullscreen preview"
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
+          {expandedImageUrl.includes('video') || expandedImageUrl.endsWith('.mp4') || expandedImageUrl.endsWith('.webm') ? (
+            <video
+              src={expandedImageUrl}
+              controls
+              autoPlay
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={expandedImageUrl}
+              alt="Fullscreen preview"
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
       )}
     </div >

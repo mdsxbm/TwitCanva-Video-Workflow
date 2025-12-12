@@ -6,7 +6,7 @@
  */
 
 import React, { useRef } from 'react';
-import { Loader2, Maximize2, ImageIcon as ImageIcon, Film, Upload, Pencil, Video } from 'lucide-react';
+import { Loader2, Maximize2, ImageIcon as ImageIcon, Film, Upload, Pencil, Video, GripVertical } from 'lucide-react';
 import { NodeData, NodeStatus, NodeType } from '../../types';
 
 interface NodeContentProps {
@@ -19,6 +19,8 @@ interface NodeContentProps {
     getAspectRatioStyle: () => { aspectRatio: string };
     onUpload?: (nodeId: string, imageDataUrl: string) => void;
     onExpand?: (imageUrl: string) => void;
+    onDragStart?: (nodeId: string, hasContent: boolean) => void;
+    onDragEnd?: () => void;
     // Text node callbacks
     onWriteContent?: (nodeId: string) => void;
     onTextToVideo?: (nodeId: string) => void;
@@ -35,6 +37,8 @@ export const NodeContent: React.FC<NodeContentProps> = ({
     getAspectRatioStyle,
     onUpload,
     onExpand,
+    onDragStart,
+    onDragEnd,
     onWriteContent,
     onTextToVideo,
     onUpdate
@@ -98,6 +102,25 @@ export const NodeContent: React.FC<NodeContentProps> = ({
                         >
                             <Maximize2 size={14} />
                         </button>
+                        {/* Drag to Chat Handle */}
+                        <div
+                            draggable
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData('application/json', JSON.stringify({
+                                    nodeId: data.id,
+                                    url: data.resultUrl,
+                                    type: data.type === NodeType.IMAGE ? 'image' : 'video'
+                                }));
+                                e.dataTransfer.effectAllowed = 'copy';
+                                onDragStart?.(data.id, true);
+                            }}
+                            onDragEnd={() => onDragEnd?.()}
+                            className="p-1.5 bg-cyan-500/80 hover:bg-cyan-400 rounded-lg text-white backdrop-blur-md cursor-grab active:cursor-grabbing flex items-center gap-1"
+                            title="Drag to chat"
+                        >
+                            <GripVertical size={14} />
+                        </div>
                     </div>
                 </div>
             ) : data.type === NodeType.TEXT ? (

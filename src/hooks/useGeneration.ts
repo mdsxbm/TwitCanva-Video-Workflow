@@ -81,7 +81,7 @@ export const useGeneration = ({ nodes, updateNode }: UseGenerationProps) => {
                     resolution: node.resolution,
                     imageBase64: imageBase64s.length > 0 ? imageBase64s : undefined
                 });
-                updateNode(id, { status: NodeStatus.SUCCESS, resultUrl });
+                updateNode(id, { status: NodeStatus.SUCCESS, resultUrl, errorMessage: undefined });
 
                 // Save to history
                 saveAsset('images', resultUrl, node.prompt);
@@ -115,7 +115,8 @@ export const useGeneration = ({ nodes, updateNode }: UseGenerationProps) => {
                 updateNode(id, {
                     status: NodeStatus.SUCCESS,
                     resultUrl,
-                    lastFrame
+                    lastFrame,
+                    errorMessage: undefined // Clear any previous error
                 });
 
                 // Save to history
@@ -128,6 +129,8 @@ export const useGeneration = ({ nodes, updateNode }: UseGenerationProps) => {
 
             if (msg.includes('permission_denied') || msg.includes('403')) {
                 errorMessage = 'Permission denied. Check API Key configuration.';
+            } else if (msg.includes('unable to process input image') || msg.includes('invalid_argument')) {
+                errorMessage = '⚠️ Input image incompatible. Veo requires: JPEG format, 16:9 or 9:16 aspect ratio. Try a different image or generate without input.';
             }
 
             updateNode(id, { status: NodeStatus.ERROR, errorMessage });

@@ -3,29 +3,109 @@
  * 
  * Agent chat panel that slides in from the right side.
  * Shows greeting, inspiration suggestions, and chat input.
+ * Supports drag-drop of image/video nodes from canvas.
  */
 
 import React, { useState } from 'react';
 import { X, History, MessageCircle, Paperclip, Globe, Settings, Send, Sparkles } from 'lucide-react';
 
+interface AttachedMedia {
+    type: 'image' | 'video';
+    url: string;
+    nodeId: string;
+}
+
 interface ChatPanelProps {
     isOpen: boolean;
     onClose: () => void;
     userName?: string;
+    isDraggingNode?: boolean;
+    onNodeDrop?: (nodeId: string, url: string, type: 'image' | 'video') => void;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
     isOpen,
     onClose,
-    userName = 'Creator'
+    userName = 'Creator',
+    isDraggingNode = false,
+    onNodeDrop
 }) => {
     const [message, setMessage] = useState('');
     const [showTip, setShowTip] = useState(true);
+    const [attachedMedia, setAttachedMedia] = useState<AttachedMedia | null>(null);
+    const [isDragOver, setIsDragOver] = useState(false);
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        // Only set false if leaving the panel entirely
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsDragOver(false);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        // Get data from drag event
+        const nodeData = e.dataTransfer.getData('application/json');
+        if (nodeData) {
+            try {
+                const { nodeId, url, type } = JSON.parse(nodeData);
+                if (url && (type === 'image' || type === 'video')) {
+                    setAttachedMedia({ type, url, nodeId });
+                }
+            } catch (err) {
+                console.error('Failed to parse dropped node data:', err);
+            }
+        }
+    };
+
+    const removeAttachment = () => {
+        setAttachedMedia(null);
+    };
+
+    const handleSend = () => {
+        if (message.trim() || attachedMedia) {
+            console.log('Sending:', { message, attachedMedia });
+            // TODO: Implement actual send logic
+            setMessage('');
+            setAttachedMedia(null);
+        }
+    };
 
     if (!isOpen) return null;
 
+    const showHighlight = isDraggingNode || isDragOver;
+
     return (
-        <div className="fixed top-0 right-0 w-[400px] h-full bg-[#1a1a1a] border-l border-neutral-800 flex flex-col z-40 shadow-2xl">
+        <div
+            className={`fixed top-0 right-0 w-[400px] h-full bg-[#1a1a1a] border-l flex flex-col z-40 shadow-2xl transition-all duration-200 ${showHighlight ? 'border-cyan-500 border-2' : 'border-neutral-800'
+                }`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+        >
+            {/* Drag Overlay */}
+            {showHighlight && (
+                <div className="absolute inset-0 bg-cyan-500/10 pointer-events-none z-10 flex items-center justify-center">
+                    <div className="bg-cyan-500/20 border-2 border-dashed border-cyan-400 rounded-2xl px-8 py-6 text-center">
+                        <Sparkles className="w-10 h-10 mx-auto mb-2 text-cyan-400" />
+                        <p className="text-cyan-300 font-medium">Drop image/video here</p>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
                 <div className="flex items-center gap-3">
@@ -73,6 +153,30 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             {/* Input Area */}
             <div className="p-4 border-t border-neutral-800">
                 <div className="bg-neutral-800 rounded-2xl p-3">
+                    {/* Attached Media Preview */}
+                    {attachedMedia && (
+                        <div className="relative inline-block mb-3">
+                            {attachedMedia.type === 'image' ? (
+                                <img
+                                    src={attachedMedia.url}
+                                    alt="Attached"
+                                    className="w-16 h-16 object-cover rounded-lg"
+                                />
+                            ) : (
+                                <video
+                                    src={attachedMedia.url}
+                                    className="w-16 h-16 object-cover rounded-lg"
+                                />
+                            )}
+                            <button
+                                onClick={removeAttachment}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center text-white text-xs"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
+
                     <textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
@@ -85,8 +189,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                             target.style.height = 'auto';
                             const newHeight = Math.min(target.scrollHeight, 120);
                             target.style.height = newHeight + 'px';
-                            // Enable scrolling when at max height
                             target.style.overflowY = target.scrollHeight > 120 ? 'auto' : 'hidden';
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSend();
+                            }
                         }}
                     />
                     <div className="flex items-center justify-between">
@@ -107,7 +216,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                             <button className="p-1.5 hover:bg-neutral-700 rounded-lg transition-colors text-neutral-400">
                                 <Settings size={16} />
                             </button>
-                            <button className="p-2 bg-cyan-500 hover:bg-cyan-400 rounded-full transition-colors text-white">
+                            <button
+                                onClick={handleSend}
+                                className="p-2 bg-cyan-500 hover:bg-cyan-400 rounded-full transition-colors text-white"
+                            >
                                 <Send size={14} />
                             </button>
                         </div>

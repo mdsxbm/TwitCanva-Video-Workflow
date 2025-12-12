@@ -117,17 +117,17 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {/* Right: Actions */}
                 <div className="flex items-center gap-3 pointer-events-auto">
                     <button
+                        onClick={onSave}
+                        className="bg-blue-600 hover:bg-blue-500 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium"
+                    >
+                        💾 Save
+                    </button>
+                    <button
                         onClick={handleNewClick}
                         className="bg-neutral-800 hover:bg-neutral-700 text-sm px-4 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium border border-neutral-600"
                     >
                         <Plus size={16} />
                         New
-                    </button>
-                    <button
-                        onClick={onSave}
-                        className="bg-blue-600 hover:bg-blue-500 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium"
-                    >
-                        💾 Save
                     </button>
                     <button className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors">
                         ✨ Community
