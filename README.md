@@ -20,6 +20,14 @@ A modern, AI-powered canvas application for generating and manipulating images a
 - **📹 Resolution Options** - 720p and 1080p for videos
 - **🔒 Secure API** - Backend proxy keeps API keys safe
 
+## 🎥 Showcase
+
+### App Overview
+<video src="public/TwitCanva-Workflow-Recording.mp4" controls width="100%"></video>
+
+### Output Example
+<video src="public/Result-example1.mp4" controls width="100%"></video>
+
 ## 🚀 Getting Started
 
 ### Prerequisites
