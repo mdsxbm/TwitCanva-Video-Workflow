@@ -325,6 +325,25 @@ export default function App() {
   // Keyboard shortcuts - undo/redo/delete/copy/paste
   const clipboardRef = React.useRef<NodeData[]>([]);
 
+  // Handle paste action (reused for keyboard and menu)
+  const handlePaste = React.useCallback(() => {
+    if (clipboardRef.current.length > 0) {
+      const pasteOffset = 50;
+      const newNodes: NodeData[] = clipboardRef.current.map(node => ({
+        ...node,
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        x: node.x + pasteOffset,
+        y: node.y + pasteOffset,
+        parentIds: undefined,
+        groupId: undefined
+      }));
+
+      setNodes(prev => [...prev, ...newNodes]);
+      setSelectedNodeIds(newNodes.map(n => n.id));
+      console.log(`Pasted ${newNodes.length} node(s)`);
+    }
+  }, [setNodes, setSelectedNodeIds]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
@@ -356,21 +375,7 @@ export default function App() {
 
       // Paste: Ctrl+V
       if (e.ctrlKey && e.key === 'v') {
-        if (clipboardRef.current.length > 0) {
-          const pasteOffset = 50;
-          const newNodes: NodeData[] = clipboardRef.current.map(node => ({
-            ...node,
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            x: node.x + pasteOffset,
-            y: node.y + pasteOffset,
-            parentIds: undefined,
-            groupId: undefined
-          }));
-
-          setNodes(prev => [...prev, ...newNodes]);
-          setSelectedNodeIds(newNodes.map(n => n.id));
-          console.log(`Pasted ${newNodes.length} node(s)`);
-        }
+        handlePaste();
         return;
       }
 
@@ -390,7 +395,8 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, selectedConnection, deleteNodes, deleteSelectedConnection, clearSelection, clearSelectionBox, undo, redo, nodes, setNodes, setSelectedNodeIds]);
+  }, [selectedNodeIds, selectedConnection, deleteNodes, deleteSelectedConnection, clearSelection, clearSelectionBox, undo, redo, nodes, setNodes, setSelectedNodeIds, handlePaste]);
+
 
   // Cleanup invalid groups (groups with less than 2 nodes)
   useEffect(() => {
@@ -1008,6 +1014,7 @@ export default function App() {
         onUpload={handleContextUpload}
         onUndo={undo}
         onRedo={redo}
+        onPaste={handlePaste}
         canUndo={canUndo}
         canRedo={canRedo}
       />

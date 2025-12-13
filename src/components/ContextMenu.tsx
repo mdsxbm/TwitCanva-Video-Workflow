@@ -24,6 +24,7 @@ interface ContextMenuProps {
   onUpload: (file: File) => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  onPaste?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
 }
@@ -35,6 +36,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onUpload,
   onUndo,
   onRedo,
+  onPaste,
   canUndo = false,
   canRedo = false
 }) => {
@@ -89,6 +91,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   const handleRedo = () => {
     if (onRedo && canRedo) {
       onRedo();
+      onClose();
+    }
+  };
+
+  const handlePaste = () => {
+    if (onPaste) {
+      onPaste();
       onClose();
     }
   };
@@ -176,7 +185,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             icon={<Clipboard size={16} />}
             label="Paste"
             shortcut="CtrlV"
-            onClick={() => { }} // Placeholder
+            onClick={handlePaste}
           />
         </div>
       </div>

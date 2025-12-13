@@ -41,7 +41,6 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 }) => {
     const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'public' | 'my'>('my');
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
     // Cover editing state
@@ -148,18 +147,9 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
                     <div className="flex items-center gap-6">
-                        <button
-                            className={`text-sm font-medium transition-colors pb-1 ${activeTab === 'public' ? 'text-white border-b-2 border-white' : 'text-neutral-500 hover:text-white'}`}
-                            onClick={() => setActiveTab('public')}
-                        >
-                            Public Workflow
-                        </button>
-                        <button
-                            className={`text-sm font-medium transition-colors pb-1 ${activeTab === 'my' ? 'text-white border-b-2 border-white' : 'text-neutral-500 hover:text-white'}`}
-                            onClick={() => setActiveTab('my')}
-                        >
+                        <span className="text-white font-medium border-b-2 border-white pb-1">
                             My Workflows
-                        </button>
+                        </span>
                     </div>
                     <button
                         onClick={onClose}
