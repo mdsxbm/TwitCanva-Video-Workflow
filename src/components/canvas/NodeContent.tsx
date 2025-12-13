@@ -6,7 +6,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Loader2, Maximize2, ImageIcon as ImageIcon, Film, Upload, Pencil, Video, GripVertical } from 'lucide-react';
+import { Loader2, Maximize2, ImageIcon as ImageIcon, Film, Upload, Pencil, Video, GripVertical, Download } from 'lucide-react';
 import { NodeData, NodeStatus, NodeType } from '../../types';
 
 interface NodeContentProps {
@@ -116,8 +116,8 @@ export const NodeContent: React.FC<NodeContentProps> = ({
                         <img src={data.resultUrl} alt="Generated" className="w-full h-full object-cover pointer-events-none" />
                     )}
 
-                    {/* Overlay Actions */}
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                    {/* Overlay Actions - z-10 to appear above video controls */}
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/image:opacity-100 transition-opacity z-10">
                         {/* Upload Button for re-uploading */}
                         {data.type === NodeType.IMAGE && onUpload && (
                             <button
@@ -136,6 +136,47 @@ export const NodeContent: React.FC<NodeContentProps> = ({
                             title="View full size"
                         >
                             <Maximize2 size={14} />
+                        </button>
+                        {/* Download Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                if (data.resultUrl) {
+                                    const filename = data.type === NodeType.VIDEO ? `video_${data.id}.mp4` : `image_${data.id}.png`;
+
+                                    // Check if it's a base64 data URL
+                                    if (data.resultUrl.startsWith('data:')) {
+                                        // Direct download for base64
+                                        const link = document.createElement('a');
+                                        link.href = data.resultUrl;
+                                        link.download = filename;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    } else {
+                                        // For file URLs, fetch and download as blob
+                                        fetch(data.resultUrl)
+                                            .then(res => res.blob())
+                                            .then(blob => {
+                                                const url = window.URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = filename;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                window.URL.revokeObjectURL(url);
+                                            })
+                                            .catch(err => console.error('Download failed:', err));
+                                    }
+                                }
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className="p-1.5 bg-black/50 hover:bg-black/80 rounded-lg text-white backdrop-blur-md"
+                            title="Download"
+                        >
+                            <Download size={14} />
                         </button>
                         {/* Drag to Chat Handle */}
                         <div

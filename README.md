@@ -10,48 +10,15 @@ A modern, AI-powered canvas application for generating and manipulating images a
 ## ✨ Features
 
 - **🎨 Visual Canvas Interface** - Drag-and-drop node-based workflow
-- **🤖 AI Image Generation** - Powered by Google's Imagen 3
+- **🤖 AI Image Generation** - Powered by Google's Gemini 3 Pro
 - **🎬 AI Video Generation** - Create videos from images using Veo 3.1
+- **💬 AI Chat Assistant** - Built-in chat with LangGraph agent
 - **🔗 Node Connections** - Chain operations with drag-to-connect
+- **💾 Workflow Management** - Save, load, and manage your workflows
 - **⚡ Real-time Updates** - Hot module replacement for instant feedback
 - **🎯 Aspect Ratio Control** - Multiple preset ratios for images
-- **📹 Resolution Options** - Auto, 1080p, and 512p for videos
+- **📹 Resolution Options** - 720p and 1080p for videos
 - **🔒 Secure API** - Backend proxy keeps API keys safe
-
-## 🏗️ Architecture
-
-### Frontend (`src/`)
-```
-src/
-├── components/
-│   ├── canvas/
-│   │   ├── CanvasNode.tsx       # Main node component (108 lines)
-│   │   ├── NodeContent.tsx      # Content display logic
-│   │   ├── NodeControls.tsx     # Control panel & settings
-│   │   └── NodeConnectors.tsx   # Connector buttons
-│   ├── ContextMenu.tsx          # Right-click menu
-│   └── Toolbar.tsx              # Top toolbar
-├── hooks/
-│   ├── useCanvasNavigation.ts   # Viewport/zoom/pan
-│   ├── useNodeManagement.ts     # Node CRUD operations
-│   ├── useConnectionDragging.ts # Connection dragging
-│   ├── useNodeDragging.ts       # Node dragging
-│   └── useGeneration.ts         # AI generation logic
-├── utils/
-│   ├── videoHelpers.ts          # Video processing
-│   └── connectionHelpers.ts     # Connection calculations
-├── services/
-│   └── geminiService.ts         # API calls to backend
-├── types.ts                     # TypeScript definitions
-├── App.tsx                      # Main app component
-└── index.tsx                    # Entry point
-```
-
-### Backend (`server/`)
-```
-server/
-└── index.js                     # Express server with API proxy
-```
 
 ## 🚀 Getting Started
 
@@ -59,7 +26,7 @@ server/
 
 - Node.js 18+ 
 - npm or yarn
-- Google Gemini API key
+- Google Gemini API key (get one at [Google AI Studio](https://aistudio.google.com/app/apikey))
 
 ### Installation
 
@@ -81,7 +48,7 @@ server/
    GEMINI_API_KEY=your_gemini_api_key_here
    ```
    
-   > ⚠️ **Security**: The API key is stored server-side and never exposed to the client.
+   > ⚠️ **Security**: The API key is stored server-side only and never exposed to the client.
 
 4. **Start the development server**
    ```bash
@@ -89,8 +56,103 @@ server/
    ```
    
    This starts both:
-   - Frontend dev server: `http://localhost:5173`
-   - Backend API server: `http://localhost:3001`
+   - **Frontend dev server**: `http://localhost:5173`
+   - **Backend API server**: `http://localhost:3001`
+
+## 📁 Project Structure
+
+```
+TwitCanva/
+├── src/                          # Frontend source code
+│   ├── components/               # React components
+│   │   ├── canvas/               # Canvas node components
+│   │   │   ├── CanvasNode.tsx    # Main node wrapper
+│   │   │   ├── NodeContent.tsx   # Node content display
+│   │   │   ├── NodeControls.tsx  # Node control panel
+│   │   │   └── NodeConnectors.tsx# Connection points
+│   │   ├── ChatPanel.tsx         # AI chat interface
+│   │   ├── WorkflowPanel.tsx     # Workflow save/load UI
+│   │   ├── HistoryPanel.tsx      # Asset history browser
+│   │   ├── ContextMenu.tsx       # Right-click menu
+│   │   ├── TopBar.tsx            # Application header
+│   │   └── Toolbar.tsx           # Canvas toolbar
+│   ├── hooks/                    # Custom React hooks
+│   │   ├── useCanvasNavigation.ts# Viewport/zoom/pan
+│   │   ├── useNodeManagement.ts  # Node CRUD operations
+│   │   ├── useConnectionDragging.ts# Connection dragging
+│   │   ├── useNodeDragging.ts    # Node dragging
+│   │   ├── useGeneration.ts      # AI generation logic
+│   │   ├── useChatAgent.ts       # Chat agent hook
+│   │   ├── useWorkflow.ts        # Workflow management
+│   │   └── useHistory.ts         # Asset history
+│   ├── services/                 # API integration
+│   │   └── geminiService.ts      # Backend API calls
+│   ├── utils/                    # Utility functions
+│   │   ├── videoHelpers.ts       # Video processing
+│   │   └── connectionHelpers.ts  # Connection calculations
+│   ├── types.ts                  # TypeScript definitions
+│   ├── App.tsx                   # Main app component
+│   └── index.tsx                 # Entry point
+│
+├── server/                       # Backend server
+│   ├── index.js                  # Express server & API routes
+│   ├── migrate-workflows.js      # Workflow migration utility
+│   └── agent/                    # LangGraph chat agent
+│       ├── index.js              # Agent entry point
+│       ├── graph/                # LangGraph definition
+│       ├── prompts/              # System prompts
+│       └── tools/                # Agent tools
+│
+├── assets/                       # Generated assets (auto-created)
+│   ├── images/                   # Saved images (.png + .json metadata)
+│   ├── videos/                   # Saved videos (.mp4 + .json metadata)
+│   ├── workflows/                # Saved workflows (.json)
+│   └── chats/                    # Chat session history (.json)
+│
+├── .env                          # Environment variables (create this)
+├── .gitignore                    # Git ignore rules
+├── package.json                  # Dependencies and scripts
+├── vite.config.ts                # Vite configuration
+└── tsconfig.json                 # TypeScript configuration
+```
+
+## 💾 Asset Storage
+
+All generated assets are automatically saved to local folders. **These folders are created automatically** when the server starts if they don't exist.
+
+### Storage Locations
+
+| Asset Type | Folder | File Format | Notes |
+|------------|--------|-------------|-------|
+| **Images** | `assets/images/` | `.png` + `.json` | Auto-saved on generation |
+| **Videos** | `assets/videos/` | `.mp4` + `.json` | Auto-saved on generation |
+| **Workflows** | `assets/workflows/` | `.json` | Manual save via UI |
+| **Chat Sessions** | `assets/chats/` | `.json` | Auto-saved per message |
+
+### How It Works
+
+1. **On server startup**: Directories are created with `fs.mkdirSync(dir, { recursive: true })`
+2. **On generation**: Files are saved to disk and served via `/assets/*` URLs
+3. **Metadata**: Each asset has a `.json` file with prompt, timestamp, and other info
+4. **Persistence**: Assets persist across server restarts
+
+### Example File Structure
+
+```
+assets/
+├── images/
+│   ├── img_1702500000000_abc123.png    # Generated image
+│   └── img_1702500000000_abc123.json   # Metadata (prompt, timestamp)
+├── videos/
+│   ├── vid_1702500000000_xyz789.mp4    # Generated video
+│   └── vid_1702500000000_xyz789.json   # Metadata
+├── workflows/
+│   └── workflow-uuid-here.json          # Complete workflow state
+└── chats/
+    └── session-uuid-here.json           # Chat history
+```
+
+> **Note**: The `assets/` folder is in `.gitignore` and won't be committed to the repository.
 
 ## 🎮 Usage
 
@@ -105,103 +167,93 @@ server/
 
 1. **Hover** over a node to reveal connector buttons (+ icons)
 2. **Click and drag** from a connector to create a connection
-3. **Release** on another node or empty space to connect
+3. **Release** on another node to connect and chain generation
+
+### AI Chat
+
+1. Click the **Chat** button in the top bar
+2. Type your message or attach images from the canvas
+3. The AI assistant can help with prompts, ideas, and more
+
+### Saving Workflows
+
+1. Click the **Workflows** button in the top bar
+2. Enter a workflow name and click **Save**
+3. Load saved workflows anytime from the same panel
 
 ### Canvas Navigation
 
 - **Pan**: Click and drag on empty canvas space
 - **Zoom**: `Ctrl/Cmd + Mouse Wheel` or use the zoom slider
 - **Select**: Click on a node to select it
+- **Multi-select**: `Shift + Click` or drag a selection box
 - **Context Menu**: Right-click for additional options
 
-## 🛠️ Development
-
-### Code Organization
-
-The codebase follows a modular architecture with clear separation of concerns:
-
-- **Components**: UI components split by responsibility
-- **Hooks**: Custom React hooks for state management
-- **Utils**: Pure utility functions
-- **Services**: API integration layer
-
-### Code Style
-
-- **File Size Limits**: 
-  - Components: 300 lines max
-  - Hooks: 200 lines max
-  - Utils: 200 lines max
-- **TypeScript**: Strict typing, no `any`
-- **Comments**: JSDoc for functions, section headers for organization
-- **Naming**: Descriptive names, consistent conventions
-
-See `code-style-guide.md` for detailed guidelines.
-
-### Available Scripts
+## 🔧 Available Scripts
 
 ```bash
-npm run dev        # Start development servers (frontend + backend)
+npm run dev        # Start frontend + backend together
+npm run server     # Start backend server only (port 3001)
 npm run build      # Build for production
 npm run preview    # Preview production build
-npm run server     # Start backend server only
 ```
 
-## 🔧 Configuration
+## 🔒 Security
 
-### Vite Configuration
+Your API key is **never exposed** to the browser:
 
-The project uses Vite for fast development and optimized builds:
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────┐
+│  Browser/Client │────▶│  Backend :3001  │────▶│  Gemini API │
+│  (No API key)   │     │  (.env file)    │     │             │
+└─────────────────┘     └─────────────────┘     └─────────────┘
+```
 
-- **Proxy**: API requests to `/api/*` are proxied to `http://localhost:3001`
-- **React**: Fast Refresh enabled
-- **Path Aliases**: `@` points to project root
-
-### TypeScript Configuration
-
-- **Strict Mode**: Enabled for type safety
-- **JSX**: React JSX transform
-- **Module Resolution**: Node-style resolution
+- ✅ API key stored in `.env` (server-side only)
+- ✅ `.env` file is in `.gitignore`
+- ✅ Backend proxies all API calls
+- ✅ No sensitive data in client code
 
 ## 📦 Tech Stack
 
 ### Frontend
-- **React 18.3.1** - UI library
-- **TypeScript 5.6.2** - Type safety
-- **Vite 6.4.1** - Build tool
-- **Tailwind CSS** - Styling (via CDN)
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
 - **Lucide React** - Icons
 
 ### Backend
-- **Express 4.21.2** - Web server
-- **Google Generative AI** - AI generation
-- **CORS** - Cross-origin support
+- **Express** - Web server
+- **LangGraph.js** - Chat agent framework
+- **@google/genai** - Gemini API client
 - **dotenv** - Environment variables
 
-## 🔒 Security
+### AI Models
+- **Gemini 3 Pro** - Image generation
+- **Veo 3.1 Fast** - Video generation
+- **Gemini 2.0 Flash** - Chat conversations
 
-- ✅ API keys stored server-side only
-- ✅ `.env` file in `.gitignore`
-- ✅ Backend proxy for API calls
-- ✅ CORS configured properly
-- ✅ No sensitive data in client code
+## 🛠️ Development
 
-## 📊 Project Stats
+### Code Style
 
-- **Total Files**: 20+ source files
-- **Lines of Code**: ~2,500 lines
-- **Components**: 7 components
-- **Custom Hooks**: 5 hooks
-- **Utilities**: 2 utility modules
+See `code-style-guide.md` for detailed guidelines:
 
-### Refactoring Results
+- **File Size Limits**: Components 300 lines, Utils 200 lines
+- **TypeScript**: Strict typing, avoid `any`
+- **Comments**: JSDoc for functions, section headers for organization
 
-- **App.tsx**: 728 → 383 lines (47% reduction)
-- **CanvasNode.tsx**: 306 → 108 lines (65% reduction)
-- **Total Extracted**: 834 lines into reusable modules
+### Adding New Features
+
+1. Add UI components in `src/components/`
+2. Create custom hooks in `src/hooks/`
+3. Add API routes in `server/index.js`
+4. Update types in `src/types.ts`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these guidelines:
+Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -217,13 +269,9 @@ This project is licensed under the MIT License.
 ## 🙏 Acknowledgments
 
 - Google Gemini API for AI generation
+- LangGraph for agent framework
 - React team for the amazing framework
 - Vite team for the blazing-fast build tool
-- Lucide for beautiful icons
-
-## 📧 Contact
-
-For questions or support, please open an issue on GitHub.
 
 ---
 
