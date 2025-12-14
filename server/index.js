@@ -190,8 +190,8 @@ app.post('/api/library', async (req, res) => {
             fs.copyFileSync(sourcePath, destPath);
         }
 
-        // Update library.json
-        const libraryJsonPath = path.join(LIBRARY_DIR, 'library.json');
+        // Update assets.json
+        const libraryJsonPath = path.join(LIBRARY_ASSETS_DIR, 'assets.json');
         let libraryData = [];
         if (fs.existsSync(libraryJsonPath)) {
             libraryData = JSON.parse(fs.readFileSync(libraryJsonPath, 'utf8'));
@@ -220,7 +220,7 @@ app.post('/api/library', async (req, res) => {
 // List library assets
 app.get('/api/library', async (req, res) => {
     try {
-        const libraryJsonPath = path.join(LIBRARY_DIR, 'library.json');
+        const libraryJsonPath = path.join(LIBRARY_ASSETS_DIR, 'assets.json');
         if (!fs.existsSync(libraryJsonPath)) {
             return res.json([]);
         }
