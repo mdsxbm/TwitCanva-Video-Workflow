@@ -3,7 +3,7 @@
   <h1>TwitCanva</h1>
 </div>
 
-A modern, AI-powered canvas application for generating and manipulating images and videos using Google's Gemini API. Built with React, TypeScript, and Vite.
+A modern, AI-powered canvas application for generating and manipulating images and videos using Google Gemini, Kling AI, and Hailuo AI (MiniMax). Built with React, TypeScript, and Vite.
 
 ![TwitCanva](https://img.shields.io/badge/React-18.3.1-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-blue)
@@ -14,7 +14,7 @@ A modern, AI-powered canvas application for generating and manipulating images a
 
 - **🎨 Visual Canvas Interface** - Drag-and-drop node-based workflow
 - **🤖 Multi-Model AI Generation** - Gemini Pro, Kling V1-V2.5 for images
-- **🎬 Multi-Model Video Generation** - Veo 3.1, Kling V1-V2.5 for videos
+- **🎬 Multi-Model Video Generation** - Veo 3.1, Kling V1-V2.5, Hailuo 2.3/O2 for videos
 - **🖼️ Image-to-Image** - Use reference images for generation
 - **📽️ Frame-to-Frame Video** - Animate between start and end frames
 - **🔗 Smart Node Connections** - Type-aware validation (IMAGE→VIDEO, TEXT→IMAGE, etc.)
@@ -48,6 +48,7 @@ This is not the perfect one, but it is a good start. Give me a try, and let me k
 - Google Gemini API key (get one at [Google AI Studio](https://aistudio.google.com/app/apikey))
 - Kling AI API keys (get them at [Kling AI Developer](https://app.klingai.com/global/dev/api-key))
   - Requires purchasing API packages at [Kling AI Pricing](https://klingai.com/global/dev/pricing)
+- Hailuo AI API key (get one at [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key))
 
 ### Installation
 
@@ -72,6 +73,9 @@ This is not the perfect one, but it is a good start. Give me a try, and let me k
    # Get from https://app.klingai.com/global/dev/api-key
    KLING_ACCESS_KEY=your_kling_access_key_here
    KLING_SECRET_KEY=your_kling_secret_key_here
+   
+   # Get from https://platform.minimax.io/user-center/basic-information/interface-key
+   HAILUO_API_KEY=your_hailuo_api_key_here
    ```
    
    > ⚠️ **Security**: API keys are stored server-side only and never exposed to the client.
@@ -132,7 +136,8 @@ TwitCanva/
 │   │   └── generation.js         # Image/video generation endpoints
 │   ├── services/                 # External API integrations
 │   │   ├── gemini.js             # Google Gemini/Veo service
-│   │   └── kling.js              # Kling AI service (V1-V2.5)
+│   │   ├── kling.js              # Kling AI service (V1-V2.5)
+│   │   └── hailuo.js             # Hailuo AI (MiniMax) service
 │   ├── utils/                    # Utility functions
 │   │   └── base64.js             # Base64 encoding helpers
 │   └── agent/                    # LangGraph chat agent
@@ -276,6 +281,10 @@ Your API key is **never exposed** to the browser:
 | Kling V2.1 | Kling AI | ✅ | ✅ | ❌ |
 | Kling V2.1 Master | Kling AI | ✅ | ✅ | ❌ |
 | Kling V2.5 Turbo | Kling AI | ✅ | ✅ | ❌ |
+| Hailuo 2.3 | MiniMax | ✅ | ✅ | ✅ |
+| Hailuo 2.3 Fast | MiniMax | ❌ | ✅ | ❌ |
+| Hailuo 02 | MiniMax | ✅ | ✅ | ✅ |
+| Hailuo O2 | MiniMax | ✅ | ✅ | ❌ |
 
 **Chat:**
 - **Gemini 2.0 Flash** - Chat conversations
@@ -315,10 +324,12 @@ This project is licensed under the MIT License.
 ## 🙏 Acknowledgments
 
 - Google Gemini API for AI generation
+- Kling AI for video generation
+- MiniMax for Hailuo AI video generation
 - LangGraph for agent framework
 - React team for the amazing framework
 - Vite team for the blazing-fast build tool
 
 ---
 
-**Built with ❤️ using React, TypeScript, and Google Gemini AI**
+**Built with ❤️ using React, TypeScript, and AI APIs from Google, Kling, and MiniMax**
