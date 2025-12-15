@@ -276,7 +276,7 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                             ? "Describe how to animate this frame..."
                             : "Describe what you want to generate..."
                 }
-                rows={2}
+                rows={4}
                 value={localPrompt}
                 onChange={(e) => handlePromptChange(e.target.value)}
                 onBlur={() => {

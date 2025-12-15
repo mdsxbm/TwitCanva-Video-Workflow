@@ -548,86 +548,9 @@ export default function App() {
     }
   }, [historyState]);
 
-  // Bidirectional prompt sync between Text nodes and connected child nodes
-  const isSyncingPrompt = React.useRef(false);
-  const syncTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  const syncPrompt = React.useCallback((sourceNodeId: string, newPrompt: string) => {
-    if (isSyncingPrompt.current) return;
-
-    // Debounce sync operations
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-
-    syncTimeoutRef.current = setTimeout(() => {
-      isSyncingPrompt.current = true;
-
-      setNodes(prev => {
-        const sourceNode = prev.find(n => n.id === sourceNodeId);
-        if (!sourceNode) {
-          isSyncingPrompt.current = false;
-          return prev;
-        }
-
-        // If source is a Text node, sync to ALL child nodes (nodes that have this Text node as parent)
-        if (sourceNode.type === NodeType.TEXT) {
-          // Check if any child needs updating
-          const needsUpdate = prev.some(n => n.parentIds?.includes(sourceNodeId) && n.prompt !== newPrompt);
-          if (!needsUpdate) {
-            isSyncingPrompt.current = false;
-            return prev;
-          }
-          return prev.map(n => {
-            if (n.parentIds?.includes(sourceNodeId) && n.prompt !== newPrompt) {
-              return { ...n, prompt: newPrompt };
-            }
-            return n;
-          });
-        }
-
-        // If source is a Video/Image node, find Text nodes that are parents and update them
-        if (sourceNode.type === NodeType.VIDEO || sourceNode.type === NodeType.IMAGE) {
-          const parentTextNodeIds = sourceNode.parentIds?.filter(parentId => {
-            const parent = prev.find(n => n.id === parentId);
-            return parent?.type === NodeType.TEXT;
-          }) || [];
-
-          if (parentTextNodeIds.length > 0) {
-            const needsUpdate = prev.some(n => parentTextNodeIds.includes(n.id) && n.prompt !== newPrompt);
-            if (!needsUpdate) {
-              isSyncingPrompt.current = false;
-              return prev;
-            }
-            return prev.map(n => {
-              if (parentTextNodeIds.includes(n.id) && n.prompt !== newPrompt) {
-                return { ...n, prompt: newPrompt };
-              }
-              return n;
-            });
-          }
-        }
-
-        isSyncingPrompt.current = false;
-        return prev;
-      });
-
-      // Reset sync flag after a short delay
-      setTimeout(() => {
-        isSyncingPrompt.current = false;
-      }, 0);
-    }, 300); // Debounce sync by 300ms
-  }, []);
-
-  // Wrap updateNode to handle prompt sync
+  // Simple wrapper for updateNode (sync code removed - TEXT node prompts are combined at generation time)
   const updateNodeWithSync = React.useCallback((id: string, updates: Partial<NodeData>) => {
     updateNode(id, updates);
-
-    // NOTE: Prompt sync disabled for now to avoid typing lag
-    // If prompt is being updated, handle sync (debounced)
-    // if (updates.prompt !== undefined) {
-    //   syncPrompt(id, updates.prompt);
-    // }
   }, [updateNode]);
 
   // ============================================================================
