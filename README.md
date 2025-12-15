@@ -46,6 +46,8 @@ This is not the perfect one, but it is a good start. Give me a try, and let me k
 - Node.js 18+ 
 - npm or yarn
 - Google Gemini API key (get one at [Google AI Studio](https://aistudio.google.com/app/apikey))
+- Kling AI API keys (get them at [Kling AI Developer](https://app.klingai.com/global/dev/api-key))
+  - Requires purchasing API packages at [Kling AI Pricing](https://klingai.com/global/dev/pricing)
 
 ### Installation
 
@@ -64,7 +66,10 @@ This is not the perfect one, but it is a good start. Give me a try, and let me k
    
    Create a `.env` file in the root directory:
    ```env
+   # Get from https://aistudio.google.com/app/apikey
    GEMINI_API_KEY=your_gemini_api_key_here
+   
+   # Get from https://app.klingai.com/global/dev/api-key
    KLING_ACCESS_KEY=your_kling_access_key_here
    KLING_SECRET_KEY=your_kling_secret_key_here
    ```
@@ -136,12 +141,12 @@ TwitCanva/
 │       ├── prompts/              # System prompts
 │       └── tools/                # Agent tools
 │
-├── library/                      # Asset library storage
-├── assets/                       # Generated assets (auto-created)
+├── library/                      # All stored data
 │   ├── images/                   # Saved images (.png + .json metadata)
 │   ├── videos/                   # Saved videos (.mp4 + .json metadata)
 │   ├── workflows/                # Saved workflows (.json)
-│   └── chats/                    # Chat session history (.json)
+│   ├── chats/                    # Chat session history (.json)
+│   └── assets/                   # User uploaded assets
 │
 ├── .env                          # Environment variables (create this)
 ├── .gitignore                    # Git ignore rules
@@ -158,20 +163,21 @@ All generated assets are automatically saved to local folders. **These folders a
 
 | Asset Type | Folder | File Format | Notes |
 |------------|--------|-------------|-------|
-| **Images** | `assets/images/` | `.png` + `.json` | Auto-saved on generation |
-| **Videos** | `assets/videos/` | `.mp4` + `.json` | Auto-saved on generation |
-| **Workflows** | `assets/workflows/` | `.json` | Manual save via UI |
-| **Chat Sessions** | `assets/chats/` | `.json` | Auto-saved per message |
+| **Images** | `library/images/` | `.png` + `.json` | Auto-saved on generation |
+| **Videos** | `library/videos/` | `.mp4` + `.json` | Auto-saved on generation |
+| **Workflows** | `library/workflows/` | `.json` | Manual save via UI |
+| **Chat Sessions** | `library/chats/` | `.json` | Auto-saved per message |
+| **Assets** | `library/assets/` | Various | User uploaded files |
 
 ### How It Works
 
 1. **On server startup**: Directories are created with `fs.mkdirSync(dir, { recursive: true })`
-2. **On generation**: Files are saved to disk and served via `/assets/*` URLs
+2. **On generation**: Files are saved to disk and served via `/library/*` URLs
 3. **Metadata**: Each asset has a `.json` file with prompt, timestamp, and other info
 4. **Persistence**: Assets persist across server restarts
 
 
-> **Note**: The `assets/` folder is in `.gitignore` and won't be committed to the repository.
+> **Note**: The `library/` folder is in `.gitignore` and won't be committed to the repository.
 
 ## 🎮 Usage
 
