@@ -4,6 +4,7 @@
  * Handles Text node specific operations.
  */
 
+import React from 'react';
 import { NodeData, NodeType, NodeStatus } from '../types';
 
 interface UseTextNodeHandlersOptions {

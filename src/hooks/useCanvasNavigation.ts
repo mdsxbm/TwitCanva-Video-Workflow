@@ -5,7 +5,7 @@
  * Handles mouse wheel zoom, slider zoom, and viewport transformations.
  */
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Viewport } from '../types';
 
 export const useCanvasNavigation = () => {

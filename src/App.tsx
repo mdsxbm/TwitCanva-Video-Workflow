@@ -25,6 +25,9 @@ import { useHistory } from './hooks/useHistory';
 import { useCanvasTitle } from './hooks/useCanvasTitle';
 import { useWorkflow } from './hooks/useWorkflow';
 import { useImageEditor } from './hooks/useImageEditor';
+import { usePanelState } from './hooks/usePanelState';
+import { useAssetHandlers } from './hooks/useAssetHandlers';
+import { useTextNodeHandlers } from './hooks/useTextNodeHandlers';
 import { extractVideoLastFrame } from './utils/videoHelpers';
 import { SelectionBoundingBox } from './components/canvas/SelectionBoundingBox';
 import { WorkflowPanel } from './components/WorkflowPanel';
@@ -70,9 +73,28 @@ export default function App() {
     type: 'global'
   });
 
-  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
-  const [assetLibraryVariant, setAssetLibraryVariant] = useState<'panel' | 'modal'>('panel');
-  const [assetLibraryY, setAssetLibraryY] = useState(0);
+  // Panel state management (history, chat, asset library, expand)
+  const {
+    isHistoryPanelOpen,
+    historyPanelY,
+    handleHistoryClick: panelHistoryClick,
+    closeHistoryPanel,
+    expandedImageUrl,
+    handleExpandImage,
+    handleCloseExpand,
+    isChatOpen,
+    toggleChat,
+    closeChat,
+    isAssetLibraryOpen,
+    assetLibraryY,
+    assetLibraryVariant,
+    handleAssetsClick: panelAssetsClick,
+    closeAssetLibrary,
+    openAssetLibraryModal,
+    isDraggingNodeToChat,
+    handleNodeDragStart,
+    handleNodeDragEnd
+  } = usePanelState();
 
 
   // Canvas title state (via hook)
@@ -186,8 +208,8 @@ export default function App() {
     setCanvasTitle,
     setEditingTitleValue,
     onPanelOpen: () => {
-      setIsHistoryPanelOpen(false);
-      setIsAssetLibraryOpen(false);
+      closeHistoryPanel();
+      closeAssetLibrary();
     }
   });
 
@@ -236,55 +258,33 @@ export default function App() {
     handleUpload
   } = useImageEditor({ nodes, updateNode });
 
-  // History panel state
-  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
-  const [historyPanelY, setHistoryPanelY] = useState(0);
+  // Text node handlers
+  const {
+    handleWriteContent,
+    handleTextToVideo
+  } = useTextNodeHandlers({ nodes, updateNode, setNodes, setSelectedNodeIds });
 
+  // Asset handlers (create asset modal)
+  const {
+    isCreateAssetModalOpen,
+    setIsCreateAssetModalOpen,
+    nodeToSnapshot,
+    handleOpenCreateAsset,
+    handleSaveAssetToLibrary,
+    handleContextUpload
+  } = useAssetHandlers({ nodes, viewport, contextMenu, setNodes });
+
+  // Wrapper functions that pass closeWorkflowPanel to panel handlers
   const handleHistoryClick = (e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setHistoryPanelY(rect.top);
-    setIsHistoryPanelOpen(prev => !prev);
-    closeWorkflowPanel(); // Close workflow panel when opening history
-    closeAssetLibrary();
+    panelHistoryClick(e, closeWorkflowPanel);
   };
 
-  const closeHistoryPanel = () => {
-    setIsHistoryPanelOpen(false);
+  const handleAssetsClick = (e: React.MouseEvent) => {
+    panelAssetsClick(e, closeWorkflowPanel);
   };
 
-  // Fullscreen image preview state
-  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
-
-  const handleExpandImage = (imageUrl: string) => {
-    setExpandedImageUrl(imageUrl);
-  };
-
-  const handleCloseExpand = () => {
-    setExpandedImageUrl(null);
-  };
-
-  // Chat panel state
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
-  const toggleChat = () => {
-    setIsChatOpen(prev => !prev);
-  };
-
-  const closeChat = () => {
-    setIsChatOpen(false);
-  };
-
-  // Track if a node with content is being dragged (for chat highlight)
-  const [isDraggingNodeToChat, setIsDraggingNodeToChat] = useState(false);
-
-  const handleNodeDragStart = (nodeId: string, hasContent: boolean) => {
-    if (hasContent) {
-      setIsDraggingNodeToChat(true);
-    }
-  };
-
-  const handleNodeDragEnd = () => {
-    setIsDraggingNodeToChat(false);
+  const handleContextMenuAddAssets = () => {
+    openAssetLibraryModal(contextMenu.y, closeWorkflowPanel);
   };
 
   /**
@@ -314,84 +314,12 @@ export default function App() {
     closeAssetLibrary();
   };
 
-  // ============================================================================
-  // ASSET LIBRARY Logic
-  // ============================================================================
-
-
-
-  const handleAssetsClick = (e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setAssetLibraryY(rect.top);
-    setAssetLibraryVariant('panel');
-    setIsAssetLibraryOpen(prev => !prev);
-    closeHistoryPanel();
-    closeWorkflowPanel();
-    closeChat();
-  };
-
-  const handleContextMenuAddAssets = () => {
-    // Open asset library at the context menu position (or reasonable default)
-    setAssetLibraryY(contextMenu.y);
-    setAssetLibraryVariant('modal');
-    setIsAssetLibraryOpen(true);
-    closeHistoryPanel();
-    closeWorkflowPanel();
-    closeChat();
-  };
-
-  const closeAssetLibrary = () => setIsAssetLibraryOpen(false);
-
   const handleLibrarySelect = (url: string, type: 'image' | 'video') => {
-    // Reuse logic - same as history select but generalized if needed
-    // For now just call handleSelectAsset as it does what we want (add node)
     handleSelectAsset(type === 'image' ? 'images' : 'videos', url, 'Asset Library Item');
     closeAssetLibrary();
   };
 
-
-  // ============================================================================
-  // CREATE ASSET MODAL Logic
-  // ============================================================================
-  const [isCreateAssetModalOpen, setIsCreateAssetModalOpen] = useState(false);
-  const [nodeToSnapshot, setNodeToSnapshot] = useState<NodeData | null>(null);
-
-  const handleOpenCreateAsset = (nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (node && (node.type === NodeType.IMAGE || node.type === NodeType.VIDEO)) {
-      setNodeToSnapshot(node);
-      setIsCreateAssetModalOpen(true);
-    } else {
-      alert("Please select an Image or Video node to create an asset.");
-    }
-  };
-
-  const handleSaveAssetToLibrary = async (name: string, category: string) => {
-    if (!nodeToSnapshot?.resultUrl) return;
-
-    try {
-      // Determine type based on node
-      // We send sourceUrl to server, server handles copy
-      const response = await fetch('http://localhost:3001/api/library', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceUrl: nodeToSnapshot.resultUrl,
-          name: name,
-          category: category
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to save');
-      // Success is handled by the modal's internal state via promise resolution if we want, 
-      // or we can close it here. But to make it pretty, let's allow the modal to show "Saved".
-      // return true; 
-    } catch (error) {
-      console.error("Failed to save asset:", error);
-      // alert("Failed to save asset."); // improving this too
-      throw error;
-    }
-  };
+  // Create asset modal (isCreateAssetModalOpen, handleOpenCreateAsset, handleSaveAssetToLibrary) provided by useAssetHandlers hook
 
   // ============================================================================
   // EFFECTS
@@ -707,55 +635,7 @@ export default function App() {
     );
   };
 
-  // ============================================================================
-  // TEXT NODE HANDLERS
-  // ============================================================================
-
-  /**
-   * Handle "Write your own content" - switches Text node to editing mode
-   */
-  const handleWriteContent = (nodeId: string) => {
-    updateNode(nodeId, { textMode: 'editing' });
-  };
-
-  /**
-   * Handle "Text to Video" - switches to editing mode and creates connected Video node
-   */
-  const handleTextToVideo = (nodeId: string) => {
-    const textNode = nodes.find(n => n.id === nodeId);
-    if (!textNode) return;
-
-    // Create Video node to the right
-    const videoNodeId = crypto.randomUUID();
-    const GAP = 100;
-    const NODE_WIDTH = 340;
-
-    const videoNode: NodeData = {
-      id: videoNodeId,
-      type: NodeType.VIDEO,
-      x: textNode.x + NODE_WIDTH + GAP,
-      y: textNode.y,
-      prompt: textNode.prompt || '', // Sync initial prompt
-      status: NodeStatus.IDLE,
-      model: 'Banana Pro',
-      aspectRatio: 'Auto',
-      resolution: 'Auto',
-      parentIds: [nodeId] // Connect to text node
-    };
-
-    // Update text node to editing mode with linked video
-    updateNode(nodeId, {
-      textMode: 'editing',
-      linkedVideoNodeId: videoNodeId
-    });
-
-    // Add video node
-    setNodes(prev => [...prev, videoNode]);
-    setSelectedNodeIds([nodeId]); // Keep text node selected
-  };
-
-  // Generation logic handled by useGeneration hook
-
+  // Text node handlers (handleWriteContent, handleTextToVideo) provided by useTextNodeHandlers hook
 
   // ============================================================================
   // RENDERING
@@ -774,72 +654,7 @@ export default function App() {
     });
   };
 
-  // ============================================================================
-  // RENDER
-  // ============================================================================
-
-  const handleContextUpload = (file: File) => {
-    if (!file) return;
-
-    const isVideo = file.type.startsWith('video/');
-    const isImage = file.type.startsWith('image/');
-
-    if (!isVideo && !isImage) return;
-
-    // Check file size (server limit 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      alert("File is too large. Maximum size is 100MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Data = e.target?.result as string;
-
-      try {
-        const type = isVideo ? 'videos' : 'images';
-        const response = await fetch(`/api/assets/${type}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: base64Data,
-            prompt: file.name
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
-
-        const responseData = await response.json();
-        const resultUrl = responseData.url;
-
-        // Convert screen/menu coordinates to canvas coordinates
-        const canvasX = (contextMenu.x - viewport.x) / viewport.zoom;
-        const canvasY = (contextMenu.y - viewport.y) / viewport.zoom;
-
-        const newNode: NodeData = {
-          id: crypto.randomUUID(),
-          type: isVideo ? NodeType.VIDEO : NodeType.IMAGE,
-          x: canvasX,
-          y: canvasY,
-          prompt: file.name, // Use filename as initial prompt
-          status: NodeStatus.SUCCESS,
-          resultUrl: resultUrl, // Use the server URL
-          model: 'Upload',
-          aspectRatio: 'Auto',
-          resolution: 'Auto',
-        };
-
-        setNodes(prev => [...prev, newNode]);
-
-      } catch (error) {
-        console.error("Upload failed:", error);
-        alert("Failed to upload file to server.");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
+  // handleContextUpload provided by useAssetHandlers hook
 
   return (
     <div className="w-screen h-screen bg-[#050505] text-white overflow-hidden select-none font-sans">

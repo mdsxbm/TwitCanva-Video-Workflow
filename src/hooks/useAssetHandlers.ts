@@ -3,9 +3,10 @@
  * 
  * Handles asset-related operations: selecting from history/library,
  * uploading files, and saving to library.
+ * Self-contained with close functions passed as parameters.
  */
 
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { NodeData, NodeType, NodeStatus, Viewport, ContextMenuState } from '../types';
 
 interface UseAssetHandlersOptions {
@@ -13,8 +14,6 @@ interface UseAssetHandlersOptions {
     viewport: Viewport;
     contextMenu: ContextMenuState;
     setNodes: React.Dispatch<React.SetStateAction<NodeData[]>>;
-    closeHistoryPanel: () => void;
-    closeAssetLibrary: () => void;
 }
 
 export const useAssetHandlers = ({
@@ -22,8 +21,6 @@ export const useAssetHandlers = ({
     viewport,
     contextMenu,
     setNodes,
-    closeHistoryPanel,
-    closeAssetLibrary
 }: UseAssetHandlersOptions) => {
     // ============================================================================
     // CREATE ASSET MODAL STATE
@@ -38,8 +35,15 @@ export const useAssetHandlers = ({
 
     /**
      * Handle selecting an asset from history - creates new node with the image/video
+     * closeHistoryPanel and closeAssetLibrary passed as params to avoid dependency
      */
-    const handleSelectAsset = (type: 'images' | 'videos', url: string, prompt: string) => {
+    const handleSelectAsset = useCallback((
+        type: 'images' | 'videos',
+        url: string,
+        prompt: string,
+        closeHistoryPanel: () => void,
+        closeAssetLibrary: () => void
+    ) => {
         // Calculate position at center of canvas
         const centerX = (window.innerWidth / 2 - viewport.x) / viewport.zoom - 170;
         const centerY = (window.innerHeight / 2 - viewport.y) / viewport.zoom - 150;
@@ -61,20 +65,30 @@ export const useAssetHandlers = ({
         setNodes(prev => [...prev, newNode]);
         closeHistoryPanel();
         closeAssetLibrary();
-    };
+    }, [viewport.x, viewport.y, viewport.zoom, setNodes]);
 
     /**
      * Handle library item selection
      */
-    const handleLibrarySelect = (url: string, type: 'image' | 'video') => {
-        handleSelectAsset(type === 'image' ? 'images' : 'videos', url, 'Asset Library Item');
-        closeAssetLibrary();
-    };
+    const handleLibrarySelect = useCallback((
+        url: string,
+        type: 'image' | 'video',
+        closeHistoryPanel: () => void,
+        closeAssetLibrary: () => void
+    ) => {
+        handleSelectAsset(
+            type === 'image' ? 'images' : 'videos',
+            url,
+            'Asset Library Item',
+            closeHistoryPanel,
+            closeAssetLibrary
+        );
+    }, [handleSelectAsset]);
 
     /**
      * Open create asset modal for a node
      */
-    const handleOpenCreateAsset = (nodeId: string) => {
+    const handleOpenCreateAsset = useCallback((nodeId: string) => {
         const node = nodes.find(n => n.id === nodeId);
         if (node && (node.type === NodeType.IMAGE || node.type === NodeType.VIDEO)) {
             setNodeToSnapshot(node);
@@ -82,12 +96,12 @@ export const useAssetHandlers = ({
         } else {
             alert("Please select an Image or Video node to create an asset.");
         }
-    };
+    }, [nodes]);
 
     /**
      * Save asset to library
      */
-    const handleSaveAssetToLibrary = async (name: string, category: string) => {
+    const handleSaveAssetToLibrary = useCallback(async (name: string, category: string) => {
         if (!nodeToSnapshot?.resultUrl) return;
 
         try {
@@ -106,12 +120,12 @@ export const useAssetHandlers = ({
             console.error("Failed to save asset:", error);
             throw error;
         }
-    };
+    }, [nodeToSnapshot]);
 
     /**
      * Handle file upload from context menu
      */
-    const handleContextUpload = (file: File) => {
+    const handleContextUpload = useCallback((file: File) => {
         if (!file) return;
 
         const isVideo = file.type.startsWith('video/');
@@ -172,7 +186,7 @@ export const useAssetHandlers = ({
             }
         };
         reader.readAsDataURL(file);
-    };
+    }, [contextMenu.x, contextMenu.y, viewport.x, viewport.y, viewport.zoom, setNodes]);
 
     // ============================================================================
     // RETURN
