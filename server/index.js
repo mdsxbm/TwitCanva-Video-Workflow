@@ -60,10 +60,21 @@ if (!KLING_ACCESS_KEY || !KLING_SECRET_KEY) {
     console.warn("SERVER WARNING: KLING_ACCESS_KEY or KLING_SECRET_KEY not set. Kling AI models will not work.");
 }
 
+// ============================================================================
+// HAILUO AI CONFIGURATION
+// ============================================================================
+
+const HAILUO_API_KEY = process.env.HAILUO_API_KEY;
+
+if (!HAILUO_API_KEY) {
+    console.warn("SERVER WARNING: HAILUO_API_KEY not set. Hailuo AI models will not work.");
+}
+
 // Set up app.locals for sharing config with route modules
 app.locals.GEMINI_API_KEY = API_KEY;
 app.locals.KLING_ACCESS_KEY = KLING_ACCESS_KEY;
 app.locals.KLING_SECRET_KEY = KLING_SECRET_KEY;
+app.locals.HAILUO_API_KEY = HAILUO_API_KEY;
 app.locals.IMAGES_DIR = IMAGES_DIR;
 app.locals.VIDEOS_DIR = VIDEOS_DIR;
 

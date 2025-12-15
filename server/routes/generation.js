@@ -2,7 +2,7 @@
  * generation.js
  * 
  * Routes for AI image and video generation.
- * Supports Gemini, Veo, and Kling AI providers.
+ * Supports Gemini, Veo, Kling AI, and Hailuo AI providers.
  */
 
 import express from 'express';
@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { generateKlingVideo, generateKlingImage, generateKlingMultiImage } from '../services/kling.js';
 import { generateGeminiImage, generateVeoVideo } from '../services/gemini.js';
+import { generateHailuoVideo } from '../services/hailuo.js';
 import { resolveImageToBase64, saveBufferToFile } from '../utils/imageHelpers.js';
 
 const router = express.Router();
@@ -132,7 +133,7 @@ router.post('/generate-image', async (req, res) => {
 router.post('/generate-video', async (req, res) => {
     try {
         const { prompt, imageBase64: rawImageBase64, lastFrameBase64: rawLastFrameBase64, aspectRatio, resolution, videoModel } = req.body;
-        const { GEMINI_API_KEY, KLING_ACCESS_KEY, KLING_SECRET_KEY, VIDEOS_DIR } = req.app.locals;
+        const { GEMINI_API_KEY, KLING_ACCESS_KEY, KLING_SECRET_KEY, HAILUO_API_KEY, VIDEOS_DIR } = req.app.locals;
 
         // Resolve file URLs to base64
         const imageBase64 = resolveImageToBase64(rawImageBase64);
@@ -140,6 +141,7 @@ router.post('/generate-video', async (req, res) => {
 
         // Determine provider
         const isKlingModel = videoModel && videoModel.startsWith('kling-');
+        const isHailuoModel = videoModel && videoModel.startsWith('hailuo-');
 
         let videoBuffer;
 
@@ -167,6 +169,32 @@ router.post('/generate-video', async (req, res) => {
             const videoResponse = await fetch(klingVideoUrl);
             if (!videoResponse.ok) {
                 throw new Error('Failed to download video from Kling');
+            }
+            videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
+
+        } else if (isHailuoModel) {
+            // --- HAILUO AI VIDEO GENERATION ---
+            if (!HAILUO_API_KEY) {
+                return res.status(500).json({
+                    error: "Hailuo API key not configured. Add HAILUO_API_KEY to .env"
+                });
+            }
+
+            console.log(`Using Hailuo AI model: ${videoModel}`);
+
+            const hailuoVideoUrl = await generateHailuoVideo({
+                prompt,
+                imageBase64,
+                lastFrameBase64,
+                modelId: videoModel,
+                resolution,
+                apiKey: HAILUO_API_KEY
+            });
+
+            // Download from Hailuo's URL
+            const videoResponse = await fetch(hailuoVideoUrl);
+            if (!videoResponse.ok) {
+                throw new Error('Failed to download video from Hailuo');
             }
             videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
 

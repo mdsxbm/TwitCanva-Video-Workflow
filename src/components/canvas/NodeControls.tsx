@@ -42,6 +42,11 @@ const VIDEO_MODELS = [
     { id: 'kling-v2-1', name: 'Kling V2.1', provider: 'kling', supportsTextToVideo: true, supportsImageToVideo: true, supportsMultiImage: false, recommended: true },
     { id: 'kling-v2-1-master', name: 'Kling V2.1 Master', provider: 'kling', supportsTextToVideo: true, supportsImageToVideo: true, supportsMultiImage: false },
     { id: 'kling-v2-5-turbo', name: 'Kling V2.5 Turbo', provider: 'kling', supportsTextToVideo: true, supportsImageToVideo: true, supportsMultiImage: false },
+    // Hailuo AI (MiniMax) models
+    { id: 'hailuo-2.3', name: 'Hailuo 2.3', provider: 'hailuo', supportsTextToVideo: true, supportsImageToVideo: true, supportsMultiImage: true },
+    { id: 'hailuo-2.3-fast', name: 'Hailuo 2.3 Fast', provider: 'hailuo', supportsTextToVideo: false, supportsImageToVideo: true, supportsMultiImage: false },
+    { id: 'hailuo-02', name: 'Hailuo 02', provider: 'hailuo', supportsTextToVideo: true, supportsImageToVideo: true, supportsMultiImage: true },
+    { id: 'hailuo-o2', name: 'Hailuo O2', provider: 'hailuo', supportsTextToVideo: true, supportsImageToVideo: true, supportsMultiImage: false },
 ];
 
 // Image model versions with metadata
@@ -365,6 +370,29 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                                         {model.recommended && (
                                                             <span className="text-[9px] px-1 py-0.5 bg-green-600/30 text-green-400 rounded">REC</span>
                                                         )}
+                                                    </span>
+                                                    {currentVideoModel.id === model.id && <Check size={12} />}
+                                                </button>
+                                            ))}
+                                        </>
+                                    )}
+
+                                    {/* Hailuo Models */}
+                                    {availableVideoModels.filter(m => m.provider === 'hailuo').length > 0 && (
+                                        <>
+                                            <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f] border-t border-neutral-700">
+                                                Hailuo AI
+                                            </div>
+                                            {availableVideoModels.filter(m => m.provider === 'hailuo').map(model => (
+                                                <button
+                                                    key={model.id}
+                                                    onClick={() => handleVideoModelChange(model.id)}
+                                                    className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${currentVideoModel.id === model.id ? 'text-blue-400' : 'text-neutral-300'
+                                                        }`}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <Film size={12} className="text-pink-400" />
+                                                        {model.name}
                                                     </span>
                                                     {currentVideoModel.id === model.id && <Check size={12} />}
                                                 </button>

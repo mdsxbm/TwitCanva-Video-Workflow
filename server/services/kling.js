@@ -218,7 +218,7 @@ export async function generateKlingMultiImageVideo({ prompt, imageList, aspectRa
     const body = {
         model_name: 'kling-v1-6',
         mode: 'std',
-        duration: '5',
+        duration: '10',
         prompt: prompt || '',
         aspect_ratio: aspectRatio === '9:16' ? '9:16' : '16:9',
         image_list: imageList.map(img => ({ image: extractRawBase64(img) }))

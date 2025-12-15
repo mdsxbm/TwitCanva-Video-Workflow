@@ -214,23 +214,53 @@ const handleData = (response: ApiResponse) => { };
 
 ## React Patterns
 
-### Custom Hooks
+### Custom Hooks - MANDATORY Separation
 
-Extract complex logic:
+**CRITICAL RULE**: When adding new hook logic to `App.tsx`, **ALWAYS create a separate hook file** under `src/hooks/`. Never add complex hook logic directly in App.tsx.
+
+**Why**: Keeps App.tsx maintainable, enables easier testing, and improves code navigation.
+
+**How to apply**:
+1. Create new file: `src/hooks/useFeatureName.ts`
+2. Move all related state, effects, and handlers into the hook
+3. Return only what App.tsx needs to consume
+4. Import and destructure in App.tsx
 
 ```typescript
-/**
- * useCanvasNavigation.ts
- * Manages canvas panning, zooming, and viewport
- */
-export const useCanvasNavigation = () => {
-  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+// ❌ Bad: Adding hook logic directly in App.tsx
+function App() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
   
-  const handleWheel = (e: WheelEvent) => { /* zoom logic */ };
-  const handlePan = (dx: number, dy: number) => { /* pan logic */ };
+  useEffect(() => {
+    // 50+ lines of complex logic
+  }, []);
   
-  return { viewport, handleWheel, handlePan };
+  const handleAction = () => { /* complex logic */ };
+  // ... App.tsx grows to 800+ lines
+}
+
+// ✅ Good: Extract to src/hooks/useDataManagement.ts
+// --- src/hooks/useDataManagement.ts ---
+import { useState, useEffect } from 'react';
+
+export const useDataManagement = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => { /* logic */ }, []);
+  const handleAction = () => { /* logic */ };
+  
+  return { data, loading, handleAction };
 };
+
+// --- App.tsx ---
+import { useDataManagement } from './hooks/useDataManagement';
+
+function App() {
+  const { data, loading, handleAction } = useDataManagement();
+  // App.tsx stays lean
+}
 ```
 
 ### Component Composition
@@ -288,24 +318,14 @@ const handleGenerate = async (id: string) => {
       prompt: node.prompt,
       aspectRatio: node.aspectRatio
     });
-    
     handleUpdateNode(id, { status: 'success', resultUrl: result });
-    
   } catch (error: any) {
     const msg = error.toString().toLowerCase();
-    
     if (msg.includes('permission_denied')) {
-      handleUpdateNode(id, {
-        status: 'error',
-        errorMessage: 'Permission denied. Check API Key.'
-      });
+      handleUpdateNode(id, { status: 'error', errorMessage: 'Permission denied.' });
     } else {
-      handleUpdateNode(id, {
-        status: 'error',
-        errorMessage: error.message || 'Generation failed'
-      });
+      handleUpdateNode(id, { status: 'error', errorMessage: error.message });
     }
-    
     console.error('Generation failed:', error);
   }
 };
@@ -320,10 +340,7 @@ const handleGenerate = async (id: string) => {
 ```typescript
 // Memoize expensive calculations
 const expensiveValue = useMemo(() => {
-  return nodes.reduce((acc, node) => {
-    // Complex calculation
-    return acc;
-  }, initialValue);
+  return nodes.reduce((acc, node) => acc, initialValue);
 }, [nodes]);
 
 // Memoize callbacks
@@ -363,23 +380,6 @@ Layout → Spacing → Sizing → Typography → Colors → Effects
 ">
 ```
 
-### Extract Complex Styles
-
-```typescript
-// ❌ Bad: Inline complex styles
-<div style={{
-  transform: `translate(${x}px, ${y}px) scale(${zoom})`,
-  transformOrigin: '0 0'
-}}>
-
-// ✅ Good: Extract
-const canvasStyle = {
-  transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-  transformOrigin: '0 0'
-};
-<div style={canvasStyle}>
-```
-
 ---
 
 ## Git Commits
@@ -401,18 +401,6 @@ const canvasStyle = {
 - `style`: Formatting
 - `chore`: Maintenance
 
-### Examples
-
-```
-feat(canvas): Add drag-to-connect functionality
-
-- Implement pointer handlers for connection dragging
-- Add visual feedback with dashed line
-- Support left and right connectors
-
-Closes #123
-```
-
 ---
 
 ## Code Review Checklist
@@ -422,21 +410,20 @@ Before submitting:
 - [ ] Functions have appropriate comments
 - [ ] Complex logic explained with inline comments
 - [ ] No file exceeds line limits
+- [ ] **New hooks are in separate files under `src/hooks/`**
 - [ ] TypeScript types properly defined (no `any`)
 - [ ] Error handling implemented
 - [ ] Console logs removed
-- [ ] Performance optimizations applied
 - [ ] Naming conventions followed
-- [ ] Git commit messages descriptive
 
 ---
 
 ## Key Takeaways
 
 1. **Keep files small** - Split when exceeding line limits
-2. **Comment generously** - Explain the "why", not just the "what"
-3. **Type everything** - Avoid `any`, use proper TypeScript
-4. **Extract logic** - Use custom hooks and utility functions
+2. **Always extract hooks** - New hook logic goes to `src/hooks/`, never inline in App.tsx
+3. **Comment generously** - Explain the "why", not just the "what"
+4. **Type everything** - Avoid `any`, use proper TypeScript
 5. **Handle errors** - Always catch and provide meaningful messages
 6. **Optimize wisely** - Use memoization for expensive operations
 7. **Stay consistent** - Follow established patterns
