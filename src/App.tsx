@@ -393,7 +393,7 @@ export default function App() {
         model: isVideo ? 'veo-3.1' : 'imagen-3.0-generate-002',
         videoModel: isVideo ? 'veo-3.1' : undefined,
         aspectRatio: aspectRatio || '16:9',
-        resolution: isVideo ? 'Auto' : '1024x1024'
+        resolution: isVideo ? 'Auto' : '1K'
       };
 
       setNodes(prev => [...prev, newNode]);

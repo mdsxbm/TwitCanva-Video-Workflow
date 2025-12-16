@@ -118,7 +118,7 @@ export async function generateGeminiImage({ prompt, imageBase64Array, aspectRati
  * Generate video using Veo
  * @returns {Promise<Buffer>} Video buffer
  */
-export async function generateVeoVideo({ prompt, imageBase64, lastFrameBase64, aspectRatio, resolution, apiKey }) {
+export async function generateVeoVideo({ prompt, imageBase64, lastFrameBase64, aspectRatio, resolution, duration, apiKey }) {
     const ai = getGeminiClient(apiKey);
     const model = 'veo-3.1-fast-generate-preview';
 
@@ -139,12 +139,17 @@ export async function generateVeoVideo({ prompt, imageBase64, lastFrameBase64, a
     };
     const mappedRatio = ratioMap[aspectRatio] || '16:9';
 
+    // Map duration - Veo 3 supports 4, 6, or 8 seconds only
+    const validDurations = [4, 6, 8];
+    const mappedDuration = validDurations.includes(duration) ? duration : 8;
+
     // Build API arguments
     const args = {
         model: model,
         prompt: prompt,
         config: {
             numberOfVideos: 1,
+            durationSeconds: mappedDuration,
             resolution: mappedResolution,
             aspectRatio: mappedRatio
         }
@@ -193,7 +198,9 @@ export async function generateVeoVideo({ prompt, imageBase64, lastFrameBase64, a
         model: args.model,
         prompt: args.prompt.substring(0, 100) + '...',
         config: args.config,
-        image: args.image ? { mimeType: args.image.mimeType, length: args.image.imageBytes?.length } : undefined
+        image: args.image ? { mimeType: args.image.mimeType, length: args.image.imageBytes?.length } : undefined,
+        requestedDuration: duration,
+        mappedDuration: mappedDuration
     });
 
     // Start generation
