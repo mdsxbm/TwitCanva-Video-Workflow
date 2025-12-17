@@ -70,11 +70,22 @@ if (!HAILUO_API_KEY) {
     console.warn("SERVER WARNING: HAILUO_API_KEY not set. Hailuo AI models will not work.");
 }
 
+// ============================================================================
+// OPENAI GPT IMAGE CONFIGURATION
+// ============================================================================
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+if (!OPENAI_API_KEY) {
+    console.warn("SERVER WARNING: OPENAI_API_KEY not set. OpenAI GPT Image models will not work.");
+}
+
 // Set up app.locals for sharing config with route modules
 app.locals.GEMINI_API_KEY = API_KEY;
 app.locals.KLING_ACCESS_KEY = KLING_ACCESS_KEY;
 app.locals.KLING_SECRET_KEY = KLING_SECRET_KEY;
 app.locals.HAILUO_API_KEY = HAILUO_API_KEY;
+app.locals.OPENAI_API_KEY = OPENAI_API_KEY;
 app.locals.IMAGES_DIR = IMAGES_DIR;
 app.locals.VIDEOS_DIR = VIDEOS_DIR;
 

@@ -62,6 +62,16 @@ const VIDEO_MODELS = [
 // aspectRatios: Supported aspect ratios for the model
 const IMAGE_MODELS = [
     {
+        id: 'gpt-image-1.5',
+        name: 'GPT Image 1.5',
+        provider: 'openai',
+        supportsImageToImage: true,
+        supportsMultiImage: true,
+        recommended: true,
+        resolutions: ["Auto", "1K", "2K", "4K"],
+        aspectRatios: ["Auto", "1:1", "9:16", "16:9"]
+    },
+    {
         id: 'gemini-pro',
         name: 'Nano Banana Pro',
         provider: 'google',
@@ -376,6 +386,11 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
             updates.aspectRatio = 'Auto';
         }
 
+        // Reset resolution if current resolution is not supported by new model
+        if (newModel?.resolutions && data.resolution && !newModel.resolutions.includes(data.resolution)) {
+            updates.resolution = newModel.resolutions[0] || 'Auto';
+        }
+
         onUpdate(data.id, updates);
         setShowModelDropdown(false);
     };
@@ -562,6 +577,8 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                             >
                                 {currentImageModel.provider === 'google' ? (
                                     <Banana size={12} className="text-yellow-400" />
+                                ) : currentImageModel.provider === 'openai' ? (
+                                    <Sparkles size={12} className="text-green-400" />
                                 ) : (
                                     <ImageIcon size={12} className="text-cyan-400" />
                                 )}
@@ -581,10 +598,35 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                             imageGenerationMode === 'image-to-image' ? `Image → Image` :
                                                 `${inputCount} Images → Image`}
                                     </div>
+                                    {/* OpenAI Models */}
+                                    {availableImageModels.filter(m => m.provider === 'openai').length > 0 && (
+                                        <>
+                                            <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">
+                                                OpenAI
+                                            </div>
+                                            {availableImageModels.filter(m => m.provider === 'openai').map(model => (
+                                                <button
+                                                    key={model.id}
+                                                    onClick={() => handleImageModelChange(model.id)}
+                                                    className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${currentImageModel.id === model.id ? 'text-blue-400' : 'text-neutral-300'
+                                                        }`}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <Sparkles size={12} className="text-green-400" />
+                                                        {model.name}
+                                                        {model.recommended && (
+                                                            <span className="text-[9px] px-1 py-0.5 bg-green-600/30 text-green-400 rounded">REC</span>
+                                                        )}
+                                                    </span>
+                                                    {currentImageModel.id === model.id && <Check size={12} />}
+                                                </button>
+                                            ))}
+                                        </>
+                                    )}
                                     {/* Google Models */}
                                     {availableImageModels.filter(m => m.provider === 'google').length > 0 && (
                                         <>
-                                            <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">
+                                            <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f] border-t border-neutral-700">
                                                 Google
                                             </div>
                                             {availableImageModels.filter(m => m.provider === 'google').map(model => (
@@ -692,23 +734,16 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                     onWheel={(e) => e.stopPropagation()}
                                 >
                                     <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">
-                                        Resolution
+                                        Quality
                                     </div>
-                                    <button
-                                        onClick={() => handleResolutionSelect('Auto')}
-                                        className={`flex items-center justify-between w-full px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${!data.resolution || data.resolution === 'Auto' ? 'text-blue-400' : 'text-neutral-300'}`}
-                                    >
-                                        <span>Auto</span>
-                                        {(!data.resolution || data.resolution === 'Auto') && <Check size={12} />}
-                                    </button>
                                     {(currentImageModel as any).resolutions.map((res: string) => (
                                         <button
                                             key={res}
                                             onClick={() => handleResolutionSelect(res)}
-                                            className={`flex items-center justify-between w-full px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${data.resolution === res ? 'text-blue-400' : 'text-neutral-300'}`}
+                                            className={`flex items-center justify-between w-full px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${(data.resolution || 'Auto') === res ? 'text-blue-400' : 'text-neutral-300'}`}
                                         >
                                             <span>{res}</span>
-                                            {data.resolution === res && <Check size={12} />}
+                                            {(data.resolution || 'Auto') === res && <Check size={12} />}
                                         </button>
                                     ))}
                                 </div>

@@ -2,7 +2,7 @@
  * generation.js
  * 
  * Routes for AI image and video generation.
- * Supports Gemini, Veo, Kling AI, and Hailuo AI providers.
+ * Supports Gemini, Veo, Kling AI, Hailuo AI, and OpenAI GPT Image providers.
  */
 
 import express from 'express';
@@ -11,6 +11,7 @@ import path from 'path';
 import { generateKlingVideo, generateKlingImage, generateKlingMultiImage } from '../services/kling.js';
 import { generateGeminiImage, generateVeoVideo } from '../services/gemini.js';
 import { generateHailuoVideo } from '../services/hailuo.js';
+import { generateOpenAIImage } from '../services/openai.js';
 import { resolveImageToBase64, saveBufferToFile } from '../utils/imageHelpers.js';
 
 const router = express.Router();
@@ -22,10 +23,11 @@ const router = express.Router();
 router.post('/generate-image', async (req, res) => {
     try {
         const { prompt, aspectRatio, resolution, imageBase64: rawImageBase64, imageModel } = req.body;
-        const { GEMINI_API_KEY, KLING_ACCESS_KEY, KLING_SECRET_KEY, IMAGES_DIR } = req.app.locals;
+        const { GEMINI_API_KEY, KLING_ACCESS_KEY, KLING_SECRET_KEY, OPENAI_API_KEY, IMAGES_DIR } = req.app.locals;
 
         // Determine provider
         const isKlingModel = imageModel && imageModel.startsWith('kling-');
+        const isOpenAIModel = imageModel && imageModel.startsWith('gpt-image-');
 
         let imageBuffer;
         let imageFormat = 'png';
@@ -84,6 +86,31 @@ router.post('/generate-image', async (req, res) => {
             if (klingImageUrl.includes('.jpg') || klingImageUrl.includes('.jpeg')) {
                 imageFormat = 'jpg';
             }
+
+        } else if (isOpenAIModel) {
+            // --- OPENAI GPT IMAGE GENERATION ---
+            if (!OPENAI_API_KEY) {
+                return res.status(500).json({
+                    error: "OpenAI API key not configured. Add OPENAI_API_KEY to .env"
+                });
+            }
+
+            console.log(`Using OpenAI GPT Image model: ${imageModel}`);
+
+            // Resolve images if provided
+            let imageBase64Array = null;
+            if (rawImageBase64) {
+                const rawImages = Array.isArray(rawImageBase64) ? rawImageBase64 : [rawImageBase64];
+                imageBase64Array = rawImages.map(img => resolveImageToBase64(img)).filter(Boolean);
+            }
+
+            imageBuffer = await generateOpenAIImage({
+                prompt,
+                imageBase64Array,
+                aspectRatio,
+                resolution,
+                apiKey: OPENAI_API_KEY
+            });
 
         } else {
             // --- GEMINI IMAGE GENERATION (Default) ---

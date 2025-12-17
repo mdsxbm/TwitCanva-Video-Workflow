@@ -6,7 +6,7 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { ChevronDown, Check, Banana, Image as ImageIcon, Crop, Monitor } from 'lucide-react';
+import { ChevronDown, Check, Banana, Image as ImageIcon, Crop, Monitor, Sparkles } from 'lucide-react';
 import { ImageModel, IMAGE_MODELS } from './imageEditor.types';
 
 // ============================================================================
@@ -105,6 +105,8 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 >
                     {currentModel.provider === 'google' ? (
                         <Banana size={11} className="text-yellow-400" />
+                    ) : currentModel.provider === 'openai' ? (
+                        <Sparkles size={11} className="text-green-400" />
                     ) : (
                         <ImageIcon size={11} className="text-cyan-400" />
                     )}
@@ -117,9 +119,30 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                         <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wider bg-[#1a1a1a] border-b border-neutral-700">
                             {hasInputImage ? 'Image → Image' : 'Text → Image'}
                         </div>
+                        {availableModels.filter(m => m.provider === 'openai').length > 0 && (
+                            <>
+                                <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">OpenAI</div>
+                                {availableModels.filter(m => m.provider === 'openai').map(model => (
+                                    <button
+                                        key={model.id}
+                                        onClick={() => onModelChange(model.id)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${currentModel.id === model.id ? 'text-blue-400' : 'text-neutral-300'}`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Sparkles size={12} className="text-green-400" />
+                                            {model.name}
+                                            {model.recommended && (
+                                                <span className="text-[9px] px-1 py-0.5 bg-green-600/30 text-green-400 rounded">REC</span>
+                                            )}
+                                        </span>
+                                        {currentModel.id === model.id && <Check size={12} />}
+                                    </button>
+                                ))}
+                            </>
+                        )}
                         {availableModels.filter(m => m.provider === 'google').length > 0 && (
                             <>
-                                <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">Google</div>
+                                <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f] border-t border-neutral-700">Google</div>
                                 {availableModels.filter(m => m.provider === 'google').map(model => (
                                     <button
                                         key={model.id}
@@ -210,7 +233,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
                     {showResolutionDropdown && (
                         <div className="absolute bottom-full mb-2 right-0 w-24 bg-[#252525] border border-neutral-700 rounded-lg shadow-xl overflow-hidden z-50">
-                            <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">Resolution</div>
+                            <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">Quality</div>
                             {(currentModel.resolutions || ['1K']).map(res => (
                                 <button
                                     key={res}
