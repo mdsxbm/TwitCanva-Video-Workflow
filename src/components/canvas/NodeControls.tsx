@@ -9,6 +9,7 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Sparkles, Banana, Settings2, Check, ChevronDown, ChevronUp, GripVertical, Image as ImageIcon, Film, Clock, Expand, Shrink, Monitor, Crop } from 'lucide-react';
 import { NodeData, NodeStatus, NodeType } from '../../types';
+import { OpenAIIcon } from '../icons/BrandIcons';
 
 interface NodeControlsProps {
     data: NodeData;
@@ -579,7 +580,7 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                 {currentImageModel.provider === 'google' ? (
                                     <Banana size={12} className="text-yellow-400" />
                                 ) : currentImageModel.provider === 'openai' ? (
-                                    <Sparkles size={12} className="text-green-400" />
+                                    <OpenAIIcon size={12} className="text-green-400" />
                                 ) : (
                                     <ImageIcon size={12} className="text-cyan-400" />
                                 )}
@@ -613,7 +614,7 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                                         }`}
                                                 >
                                                     <span className="flex items-center gap-2">
-                                                        <Sparkles size={12} className="text-green-400" />
+                                                        <OpenAIIcon size={12} className="text-green-400" />
                                                         {model.name}
                                                         {model.recommended && (
                                                             <span className="text-[9px] px-1 py-0.5 bg-green-600/30 text-green-400 rounded">REC</span>
