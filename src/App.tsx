@@ -99,6 +99,8 @@ export default function App() {
     handleNodeDragEnd
   } = usePanelState();
 
+  const [canvasHoveredNodeId, setCanvasHoveredNodeId] = useState<string | null>(null);
+
 
   // Canvas title state (via hook)
   const {
@@ -111,17 +113,19 @@ export default function App() {
     canvasTitleInputRef
   } = useCanvasTitle();
 
-  // ============================================================================
-  // CUSTOM HOOKS
-  // ============================================================================
-
   const {
     viewport,
     setViewport,
     canvasRef,
-    handleWheel,
+    handleWheel: baseHandleWheel,
     handleSliderZoom
   } = useCanvasNavigation();
+
+  // Wrap handleWheel to pass hovered node for zoom-to-center
+  const handleWheel = (e: React.WheelEvent) => {
+    const hoveredNode = canvasHoveredNodeId ? nodes.find(n => n.id === canvasHoveredNodeId) : undefined;
+    baseHandleWheel(e, hoveredNode);
+  };
 
   const {
     nodes,
@@ -140,7 +144,7 @@ export default function App() {
     isDraggingConnection,
     connectionStart,
     tempConnectionEnd,
-    hoveredNodeId,
+    hoveredNodeId: connectionHoveredNodeId,
     selectedConnection,
     setSelectedConnection,
     handleConnectorPointerDown,
@@ -738,7 +742,7 @@ export default function App() {
                 onContextMenu={handleNodeContextMenu}
                 onSelect={(id) => setSelectedNodeIds([id])}
                 onConnectorDown={handleConnectorPointerDown}
-                isHoveredForConnection={hoveredNodeId === node.id}
+                isHoveredForConnection={connectionHoveredNodeId === node.id}
                 onOpenEditor={handleOpenImageEditor}
                 onUpload={handleUpload}
                 onExpand={handleExpandImage}
@@ -750,6 +754,8 @@ export default function App() {
                 onImageToImage={handleImageToImage}
                 onImageToVideo={handleImageToVideo}
                 zoom={viewport.zoom}
+                onMouseEnter={() => setCanvasHoveredNodeId(node.id)}
+                onMouseLeave={() => setCanvasHoveredNodeId(null)}
               />
             ))}
           </div>

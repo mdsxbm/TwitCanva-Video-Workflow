@@ -239,24 +239,14 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
     );
   }
 
-  // Calculate scaling factor to ensure node doesn't exceed window size when zooming in
-  const nodeWidth = 600; // Expected max width of prompt area
-  const nodeHeight = 650; // Expected max height of node + prompt area
-
-  const widthScaleLimit = (window.innerWidth * 0.9) / (nodeWidth * zoom);
-  const heightScaleLimit = (window.innerHeight * 0.9) / (nodeHeight * zoom);
-
-  // Only scale down if the node on screen would exceed 90% of window size
-  const autoScale = Math.min(1, widthScaleLimit, heightScaleLimit);
-
   return (
     <div
       className={`absolute group/node touch-none pointer-events-auto`}
       style={{
-        transform: `translate(${data.x}px, ${data.y}px) scale(${autoScale})`,
+        transform: `translate(${data.x}px, ${data.y}px)`,
         transition: 'box-shadow 0.2s',
         zIndex: selected ? 50 : 10,
-        transformOrigin: 'top left' // Anchor at top-left to prevent shifting
+        transformOrigin: 'top left'
       }}
       onPointerDown={(e) => onNodePointerDown(e, data.id)}
       onContextMenu={(e) => onContextMenu(e, data.id)}
@@ -342,6 +332,6 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };

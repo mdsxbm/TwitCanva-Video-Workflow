@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { Viewport } from '../types';
+import { Viewport, NodeData, NodeType } from '../types';
 
 export const useCanvasNavigation = () => {
     // ============================================================================
@@ -25,19 +25,59 @@ export const useCanvasNavigation = () => {
      * Ctrl/Cmd + Wheel: Zoom in/out
      * Wheel: Pan canvas
      */
-    const handleWheel = (e: React.WheelEvent) => {
+    const handleWheel = (e: React.WheelEvent, hoveredNode?: NodeData) => {
         if (e.ctrlKey || e.metaKey) {
             // Zoom with Ctrl/Cmd + Wheel
             const s = Math.exp(-e.deltaY * 0.001);
-            const newZoom = Math.min(Math.max(0.1, viewport.zoom * s), 5);
+            let targetZoom = viewport.zoom * s;
+
+            // Apply size limit if hovering over a node
+            // Node dimensions: 600px wide, ~650px high (approx)
+            if (hoveredNode) {
+                const nodeWidth = 600;
+                const nodeHeight = 650;
+                const maxZWidth = (window.innerWidth * 0.9) / nodeWidth;
+                const maxZHeight = (window.innerHeight * 0.9) / nodeHeight;
+                const maxNodeZoom = Math.min(maxZWidth, maxZHeight);
+
+                // Cap the target zoom
+                targetZoom = Math.min(targetZoom, maxNodeZoom);
+            }
+
+            const newZoom = Math.min(Math.max(0.1, targetZoom), 5);
 
             const rect = canvasRef.current?.getBoundingClientRect();
             if (rect) {
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
 
-                const newX = mouseX - (mouseX - viewport.x) * (newZoom / viewport.zoom);
-                const newY = mouseY - (mouseY - viewport.y) * (newZoom / viewport.zoom);
+                let anchorX = mouseX;
+                let anchorY = mouseY;
+
+                // Adjust anchor to node center if hovering over a node
+                if (hoveredNode) {
+                    const isVideo = hoveredNode.type === NodeType.VIDEO;
+                    const nodeWidth = isVideo ? 385 : 365;
+                    const nodeHeight = 400; // Estimated image area height
+
+                    const nodeCenterX = hoveredNode.x + nodeWidth / 2;
+                    const nodeCenterY = hoveredNode.y + nodeHeight / 2;
+
+                    anchorX = nodeCenterX * viewport.zoom + viewport.x;
+                    anchorY = nodeCenterY * viewport.zoom + viewport.y;
+                }
+
+                let newX = anchorX - (anchorX - viewport.x) * (newZoom / viewport.zoom);
+                let newY = anchorY - (anchorY - viewport.y) * (newZoom / viewport.zoom);
+
+                // Pull towards center if zooming into a node
+                if (hoveredNode && newZoom > viewport.zoom) {
+                    const windowCenterX = window.innerWidth / 2;
+                    const windowCenterY = window.innerHeight / 2;
+                    const strength = 0.1;
+                    newX += (windowCenterX - anchorX) * strength;
+                    newY += (windowCenterY - anchorY) * strength;
+                }
 
                 setViewport({
                     x: newX,
