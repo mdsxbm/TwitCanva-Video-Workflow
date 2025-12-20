@@ -9,7 +9,7 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Sparkles, Banana, Settings2, Check, ChevronDown, ChevronUp, GripVertical, Image as ImageIcon, Film, Clock, Expand, Shrink, Monitor, Crop } from 'lucide-react';
 import { NodeData, NodeStatus, NodeType } from '../../types';
-import { OpenAIIcon } from '../icons/BrandIcons';
+import { OpenAIIcon, GoogleIcon } from '../icons/BrandIcons';
 
 interface NodeControlsProps {
     data: NodeData;
@@ -494,7 +494,11 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                 onClick={() => setShowModelDropdown(!showModelDropdown)}
                                 className="flex items-center gap-1.5 text-xs text-neutral-300 hover:bg-neutral-800 px-2 py-1.5 rounded-lg transition-colors"
                             >
-                                <Film size={12} className="text-cyan-400" />
+                                {currentVideoModel.id === 'veo-3.1' ? (
+                                    <GoogleIcon size={12} className="text-white" />
+                                ) : (
+                                    <Film size={12} className="text-cyan-400" />
+                                )}
                                 <span className="font-medium">{currentVideoModel.name}</span>
                                 <ChevronDown size={12} className="ml-0.5 opacity-50" />
                             </button>
@@ -525,7 +529,11 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                                         }`}
                                                 >
                                                     <span className="flex items-center gap-2">
-                                                        <Film size={12} className="text-cyan-400" />
+                                                        {model.id === 'veo-3.1' ? (
+                                                            <GoogleIcon size={12} className="text-white" />
+                                                        ) : (
+                                                            <Film size={12} className="text-cyan-400" />
+                                                        )}
                                                         {model.name}
                                                     </span>
                                                     {currentVideoModel.id === model.id && <Check size={12} />}
@@ -591,7 +599,9 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                 onClick={() => setShowModelDropdown(!showModelDropdown)}
                                 className="flex items-center gap-1.5 text-xs text-neutral-300 hover:bg-neutral-800 px-2 py-1.5 rounded-lg transition-colors"
                             >
-                                {currentImageModel.provider === 'google' ? (
+                                {currentImageModel.id === 'google-veo' ? ( // Keeping consistency if there was one, but mainly checking provider
+                                    <GoogleIcon size={12} className="text-white" />
+                                ) : currentImageModel.id === 'gemini-pro' ? (
                                     <Banana size={12} className="text-yellow-400" />
                                 ) : currentImageModel.provider === 'openai' ? (
                                     <OpenAIIcon size={12} className="text-green-400" />
@@ -653,7 +663,11 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                                                         }`}
                                                 >
                                                     <span className="flex items-center gap-2">
-                                                        <Banana size={12} className="text-yellow-400" />
+                                                        {model.id === 'gemini-pro' ? (
+                                                            <Banana size={12} className="text-yellow-400" />
+                                                        ) : (
+                                                            <GoogleIcon size={12} className="text-white" />
+                                                        )}
                                                         {model.name}
                                                     </span>
                                                     {currentImageModel.id === model.id && <Check size={12} />}
