@@ -22,7 +22,7 @@ const router = express.Router();
 
 router.post('/generate-image', async (req, res) => {
     try {
-        const { prompt, aspectRatio, resolution, imageBase64: rawImageBase64, imageModel } = req.body;
+        const { nodeId, prompt, aspectRatio, resolution, imageBase64: rawImageBase64, imageModel } = req.body;
         const { GEMINI_API_KEY, KLING_ACCESS_KEY, KLING_SECRET_KEY, OPENAI_API_KEY, IMAGES_DIR } = req.app.locals;
 
         // Determine provider
@@ -134,7 +134,7 @@ router.post('/generate-image', async (req, res) => {
         }
 
         // Save to library
-        const saved = saveBufferToFile(imageBuffer, IMAGES_DIR, 'img', imageFormat);
+        const saved = saveBufferToFile(imageBuffer, IMAGES_DIR, 'img', imageFormat, nodeId);
 
         // Save metadata
         const metadata = {
@@ -162,7 +162,7 @@ router.post('/generate-image', async (req, res) => {
 
 router.post('/generate-video', async (req, res) => {
     try {
-        const { prompt, imageBase64: rawImageBase64, lastFrameBase64: rawLastFrameBase64, aspectRatio, resolution, duration, videoModel } = req.body;
+        const { nodeId, prompt, imageBase64: rawImageBase64, lastFrameBase64: rawLastFrameBase64, aspectRatio, resolution, duration, videoModel } = req.body;
         const { GEMINI_API_KEY, KLING_ACCESS_KEY, KLING_SECRET_KEY, HAILUO_API_KEY, VIDEOS_DIR } = req.app.locals;
 
         // Resolve file URLs to base64
@@ -251,7 +251,7 @@ router.post('/generate-video', async (req, res) => {
         }
 
         // Save to library
-        const saved = saveBufferToFile(videoBuffer, VIDEOS_DIR, 'vid', 'mp4');
+        const saved = saveBufferToFile(videoBuffer, VIDEOS_DIR, 'vid', 'mp4', nodeId);
 
         // Save metadata
         const metadata = {
@@ -272,6 +272,40 @@ router.post('/generate-video', async (req, res) => {
     } catch (error) {
         console.error("Server Video Gen Error:", error);
         res.status(500).json({ error: error.message || "Video generation failed" });
+    }
+});
+
+// ============================================================================
+// GENERATION STATUS / RECOVERY
+// ============================================================================
+
+/**
+ * Check if a generation has finished for a specific nodeId.
+ * Returns the resultUrl if it exists.
+ */
+router.get('/generation-status/:nodeId', async (req, res) => {
+    try {
+        const { nodeId } = req.params;
+        const { IMAGES_DIR, VIDEOS_DIR } = req.app.locals;
+
+        // Check images metadata
+        const imageMetaPath = path.join(IMAGES_DIR, `${nodeId}.json`);
+        if (fs.existsSync(imageMetaPath)) {
+            const meta = JSON.parse(fs.readFileSync(imageMetaPath, 'utf8'));
+            return res.json({ status: 'success', resultUrl: `/library/images/${meta.filename}`, type: 'image' });
+        }
+
+        // Check videos metadata
+        const videoMetaPath = path.join(VIDEOS_DIR, `${nodeId}.json`);
+        if (fs.existsSync(videoMetaPath)) {
+            const meta = JSON.parse(fs.readFileSync(videoMetaPath, 'utf8'));
+            return res.json({ status: 'success', resultUrl: `/library/videos/${meta.filename}`, type: 'video' });
+        }
+
+        res.json({ status: 'pending' });
+    } catch (error) {
+        console.error("Status Check Error:", error);
+        res.status(500).json({ error: error.message });
     }
 });
 

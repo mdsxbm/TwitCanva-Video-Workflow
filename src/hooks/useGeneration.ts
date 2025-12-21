@@ -143,7 +143,8 @@ export const useGeneration = ({ nodes, updateNode }: UseGenerationProps) => {
                     aspectRatio: node.aspectRatio,
                     resolution: node.resolution,
                     imageBase64: imageBase64s.length > 0 ? imageBase64s : undefined,
-                    imageModel: node.imageModel
+                    imageModel: node.imageModel,
+                    nodeId: id
                 });
 
                 // Detect actual image dimensions (for display purposes only)
@@ -225,7 +226,8 @@ export const useGeneration = ({ nodes, updateNode }: UseGenerationProps) => {
                     aspectRatio: node.aspectRatio,
                     resolution: node.resolution,
                     duration: node.videoDuration,
-                    videoModel: node.videoModel
+                    videoModel: node.videoModel,
+                    nodeId: id
                 });
 
                 // Extract last frame for chaining

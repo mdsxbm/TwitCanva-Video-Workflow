@@ -120,10 +120,11 @@ export function mapAspectRatio(ratio) {
  * @param {string} dir - Directory to save to
  * @param {string} prefix - Filename prefix (e.g., 'img', 'vid')
  * @param {string} extension - File extension (e.g., 'png', 'mp4')
+ * @param {string} [customId] - Optional custom ID to use instead of generating one
  * @returns {{ id: string, path: string, url: string }}
  */
-export function saveBufferToFile(buffer, dir, prefix, extension) {
-    const id = `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+export function saveBufferToFile(buffer, dir, prefix, extension, customId) {
+    const id = customId || `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const filename = `${id}.${extension}`;
     const filePath = path.join(dir, filename);
 

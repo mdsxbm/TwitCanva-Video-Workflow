@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 
 interface TopBarProps {
     // Title
@@ -20,6 +20,7 @@ interface TopBarProps {
     onSave: () => void;
     onNew: () => void;
     hasUnsavedChanges: boolean;
+    lastAutoSaveTime?: number;
     // Layout
     isChatOpen?: boolean;
     // Theme
@@ -38,6 +39,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     onSave,
     onNew,
     hasUnsavedChanges,
+    lastAutoSaveTime,
     isChatOpen = false,
     canvasTheme,
     onToggleTheme
@@ -123,15 +125,19 @@ export const TopBar: React.FC<TopBarProps> = ({
                 <div className="flex items-center gap-3 pointer-events-auto">
                     <button
                         onClick={onSave}
-                        className="bg-blue-600 hover:bg-blue-500 text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium text-white shadow-sm"
+                        className={`text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium border ${canvasTheme === 'dark'
+                            ? 'bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-600'
+                            : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-900 border-neutral-300 shadow-sm'
+                            }`}
                     >
-                        💾 Save
+                        <Save size={16} />
+                        Save
                     </button>
                     <button
                         onClick={handleNewClick}
                         className={`text-sm px-4 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium border ${canvasTheme === 'dark'
-                                ? 'bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-600'
-                                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900 border-neutral-300'
+                            ? 'bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-600'
+                            : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900 border-neutral-300'
                             }`}
                     >
                         <Plus size={16} />
@@ -151,6 +157,15 @@ export const TopBar: React.FC<TopBarProps> = ({
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
                         )}
                     </button>
+
+                    {lastAutoSaveTime && !hasUnsavedChanges && (
+                        <div className={`text-[10px] font-medium px-2 py-1 rounded border animate-in fade-in duration-500 ${canvasTheme === 'dark'
+                            ? 'text-neutral-500 border-neutral-800'
+                            : 'text-neutral-400 border-neutral-100'
+                            }`}>
+                            Auto-saved {new Date(lastAutoSaveTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
                 </div>
             </div>
 

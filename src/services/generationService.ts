@@ -13,6 +13,7 @@ export interface GenerateImageParams {
   resolution?: string;
   imageBase64?: string | string[]; // Supports single image or array of images
   imageModel?: string; // Image model version (e.g., 'gemini-pro', 'kling-v2')
+  nodeId?: string; // ID of the node initiating generation
 }
 
 export interface GenerateVideoParams {
@@ -23,6 +24,7 @@ export interface GenerateVideoParams {
   resolution?: string; // Add resolution to params
   duration?: number; // Video duration in seconds (e.g., 5, 6, 8, 10)
   videoModel?: string; // Video model version (e.g., 'veo-3.1', 'kling-v2-1')
+  nodeId?: string; // ID of the node initiating generation
 }
 
 /**

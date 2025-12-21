@@ -31,6 +31,8 @@ import { useTextNodeHandlers } from './hooks/useTextNodeHandlers';
 import { useImageNodeHandlers } from './hooks/useImageNodeHandlers';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useContextMenuHandlers } from './hooks/useContextMenuHandlers';
+import { useAutoSave } from './hooks/useAutoSave';
+import { useGenerationRecovery } from './hooks/useGenerationRecovery';
 import { extractVideoLastFrame } from './utils/videoHelpers';
 import { SelectionBoundingBox } from './components/canvas/SelectionBoundingBox';
 import { WorkflowPanel } from './components/WorkflowPanel';
@@ -167,8 +169,6 @@ export default function App() {
     releasePointerCapture
   } = useNodeDragging();
 
-  const { handleGenerate } = useGeneration({ nodes, updateNode });
-
   const {
     selectionBox,
     isSelecting,
@@ -226,16 +226,26 @@ export default function App() {
   const [isDirty, setIsDirty] = React.useState(false);
   const hasUnsavedChanges = isDirty && nodes.length > 0;
 
-  // Mark as dirty when nodes change (after initial load)
-  const prevNodesLengthRef = React.useRef(nodes.length);
-  const prevTitleRef = React.useRef(canvasTitle);
+  // Mark as dirty when nodes or title change
+  const isInitialMount = React.useRef(true);
+  const lastLoadingCountRef = React.useRef(0);
+
   React.useEffect(() => {
-    if (nodes.length !== prevNodesLengthRef.current || canvasTitle !== prevTitleRef.current) {
-      setIsDirty(true);
-      prevNodesLengthRef.current = nodes.length;
-      prevTitleRef.current = canvasTitle;
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
-  }, [nodes.length, canvasTitle]);
+
+    setIsDirty(true);
+
+    // Trigger immediate save if any node JUST entered LOADING state
+    const currentLoadingCount = nodes.filter(n => n.status === NodeStatus.LOADING).length;
+    if (currentLoadingCount > lastLoadingCountRef.current) {
+      console.log('[App] New loading node detected, triggering immediate save for recovery protection');
+      handleSaveWithTracking();
+    }
+    lastLoadingCountRef.current = currentLoadingCount;
+  }, [nodes, canvasTitle]);
 
   // Update saved state after workflow save
   const handleSaveWithTracking = async () => {
@@ -248,6 +258,11 @@ export default function App() {
     await handleLoadWorkflow(id);
     setIsDirty(false);
   };
+
+  const { handleGenerate } = useGeneration({
+    nodes,
+    updateNode
+  });
 
   // Create new canvas
   const handleNewCanvas = () => {
@@ -308,6 +323,20 @@ export default function App() {
     clearSelectionBox,
     undo,
     redo
+  });
+
+  // Auto-Save Management
+  const { lastSaveTime: lastAutoSaveTime } = useAutoSave({
+    isDirty,
+    nodes,
+    onSave: handleSaveWithTracking,
+    interval: 60000 // Save every 60 seconds
+  });
+
+  // Generation Recovery Management
+  useGenerationRecovery({
+    nodes,
+    updateNode
   });
 
   // Context menu handlers
@@ -661,6 +690,7 @@ export default function App() {
         isChatOpen={isChatOpen}
         canvasTheme={canvasTheme}
         onToggleTheme={() => setCanvasTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+        lastAutoSaveTime={lastAutoSaveTime}
       />
 
       {/* Canvas */}
