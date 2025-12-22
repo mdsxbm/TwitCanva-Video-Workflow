@@ -208,7 +208,6 @@ router.post('/generate-video', async (req, res) => {
                     characterImageBase64: imageBase64,
                     motionVideoBase64: motionReferenceUrl,
                     characterOrientation: 'video',
-                    keepOriginalSound: false,
                     apiKey: FAL_API_KEY
                 });
             } else {

@@ -33,6 +33,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useContextMenuHandlers } from './hooks/useContextMenuHandlers';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useGenerationRecovery } from './hooks/useGenerationRecovery';
+import { useVideoFrameExtraction } from './hooks/useVideoFrameExtraction';
 import { extractVideoLastFrame } from './utils/videoHelpers';
 import { SelectionBoundingBox } from './components/canvas/SelectionBoundingBox';
 import { WorkflowPanel } from './components/WorkflowPanel';
@@ -335,6 +336,12 @@ export default function App() {
 
   // Generation Recovery Management
   useGenerationRecovery({
+    nodes,
+    updateNode
+  });
+
+  // Video Frame Extraction (auto-extract lastFrame for videos missing thumbnails)
+  useVideoFrameExtraction({
     nodes,
     updateNode
   });

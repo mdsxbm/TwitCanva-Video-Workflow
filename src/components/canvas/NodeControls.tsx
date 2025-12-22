@@ -719,40 +719,42 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Unified Size/Ratio Dropdown */}
-                    <div className="relative" ref={dropdownRef}>
-                        <button
-                            onClick={() => setShowSizeDropdown(!showSizeDropdown)}
-                            className="flex items-center gap-1.5 text-xs font-medium bg-[#252525] hover:bg-[#333] border border-neutral-700 text-white px-2.5 py-1.5 rounded-lg transition-colors"
-                        >
-                            {isVideoNode && <Monitor size={12} className="text-green-400" />}
-                            {!isVideoNode && <Crop size={12} className="text-blue-400" />}
-                            {data.type === NodeType.VIDEO && currentSizeLabel === 'Auto' ? 'Auto' : currentSizeLabel}
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {showSizeDropdown && (
-                            <div
-                                className="absolute bottom-full mb-2 right-0 w-32 bg-[#252525] border border-neutral-700 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-60 overflow-y-auto"
-                                onWheel={(e) => e.stopPropagation()}
+                    {/* Unified Size/Ratio Dropdown (hidden for video nodes in motion-control mode) */}
+                    {!(isVideoNode && videoGenerationMode === 'motion-control') && (
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                onClick={() => setShowSizeDropdown(!showSizeDropdown)}
+                                className="flex items-center gap-1.5 text-xs font-medium bg-[#252525] hover:bg-[#333] border border-neutral-700 text-white px-2.5 py-1.5 rounded-lg transition-colors"
                             >
-                                <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">
-                                    {data.type === NodeType.VIDEO ? 'Resolution' : 'Aspect Ratio'}
+                                {isVideoNode && <Monitor size={12} className="text-green-400" />}
+                                {!isVideoNode && <Crop size={12} className="text-blue-400" />}
+                                {data.type === NodeType.VIDEO && currentSizeLabel === 'Auto' ? 'Auto' : currentSizeLabel}
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {showSizeDropdown && (
+                                <div
+                                    className="absolute bottom-full mb-2 right-0 w-32 bg-[#252525] border border-neutral-700 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-60 overflow-y-auto"
+                                    onWheel={(e) => e.stopPropagation()}
+                                >
+                                    <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-[#1f1f1f]">
+                                        {data.type === NodeType.VIDEO ? 'Resolution' : 'Aspect Ratio'}
+                                    </div>
+                                    {sizeOptions.map(option => (
+                                        <button
+                                            key={option}
+                                            onClick={() => handleSizeSelect(option)}
+                                            className={`flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${currentSizeLabel === option ? 'text-blue-400' : 'text-neutral-300'
+                                                }`}
+                                        >
+                                            <span>{option}</span>
+                                            {currentSizeLabel === option && <Check size={12} />}
+                                        </button>
+                                    ))}
                                 </div>
-                                {sizeOptions.map(option => (
-                                    <button
-                                        key={option}
-                                        onClick={() => handleSizeSelect(option)}
-                                        className={`flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-[#333] transition-colors ${currentSizeLabel === option ? 'text-blue-400' : 'text-neutral-300'
-                                            }`}
-                                    >
-                                        <span>{option}</span>
-                                        {currentSizeLabel === option && <Check size={12} />}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Image Resolution Dropdown - Only for Image nodes */}
                     {!isVideoNode && (currentImageModel as any).resolutions && (
@@ -789,8 +791,8 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                         </div>
                     )}
 
-                    {/* Video Aspect Ratio Dropdown - Only for video nodes */}
-                    {isVideoNode && (
+                    {/* Video Aspect Ratio Dropdown - Only for video nodes (hidden in motion-control mode) */}
+                    {isVideoNode && videoGenerationMode !== 'motion-control' && (
                         <div className="relative" ref={aspectRatioDropdownRef}>
                             <button
                                 onClick={() => setShowAspectRatioDropdown(!showAspectRatioDropdown)}
@@ -821,8 +823,8 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
                         </div>
                     )}
 
-                    {/* Duration Dropdown - Only for video nodes */}
-                    {isVideoNode && availableDurations.length > 0 && (
+                    {/* Duration Dropdown - Only for video nodes (hidden in motion-control mode) */}
+                    {isVideoNode && videoGenerationMode !== 'motion-control' && availableDurations.length > 0 && (
                         <div className="relative" ref={durationDropdownRef}>
                             <button
                                 onClick={() => setShowDurationDropdown(!showDurationDropdown)}
@@ -869,118 +871,120 @@ const NodeControlsComponent: React.FC<NodeControlsProps> = ({
             </div>
 
             {/* Advanced Settings Drawer - Only for Video nodes */}
-            {isVideoNode && (
-                <div className="mt-2 pt-2 border-t border-neutral-800">
-                    <button
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                        className="w-full flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                        <span className="text-[10px] text-neutral-600 uppercase tracking-widest hover:text-neutral-400">
-                            Advanced Settings
-                        </span>
-                        {showAdvanced ? (
-                            <ChevronUp size={12} className="text-neutral-600" />
-                        ) : (
-                            <ChevronDown size={12} className="text-neutral-600" />
-                        )}
-                    </button>
+            {
+                isVideoNode && (
+                    <div className="mt-2 pt-2 border-t border-neutral-800">
+                        <button
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className="w-full flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                            <span className="text-[10px] text-neutral-600 uppercase tracking-widest hover:text-neutral-400">
+                                Advanced Settings
+                            </span>
+                            {showAdvanced ? (
+                                <ChevronUp size={12} className="text-neutral-600" />
+                            ) : (
+                                <ChevronDown size={12} className="text-neutral-600" />
+                            )}
+                        </button>
 
-                    {/* Advanced Settings Content - Only for Video nodes */}
-                    {showAdvanced && isVideoNode && (
-                        <div className="mt-3 space-y-3">
-                            {/* Frame Inputs - Show when 2+ nodes are connected */}
-                            {connectedImageNodes.length >= 2 && (
-                                <div className="space-y-2">
-                                    <label className="text-[10px] text-neutral-500 uppercase tracking-wider">
-                                        {videoGenerationMode === 'motion-control' ? 'Input References' : 'Connected Frames'}
-                                        {videoGenerationMode !== 'motion-control' && <span className="text-neutral-600"> (drag to reorder)</span>}
-                                    </label>
+                        {/* Advanced Settings Content - Only for Video nodes */}
+                        {showAdvanced && isVideoNode && (
+                            <div className="mt-3 space-y-3">
+                                {/* Frame Inputs - Show when 2+ nodes are connected */}
+                                {connectedImageNodes.length >= 2 && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">
+                                            {videoGenerationMode === 'motion-control' ? 'Input References' : 'Connected Frames'}
+                                            {videoGenerationMode !== 'motion-control' && <span className="text-neutral-600"> (drag to reorder)</span>}
+                                        </label>
 
-                                    {frameInputsWithUrls.length === 0 ? (
-                                        <div className="text-xs text-neutral-600 italic py-2">
-                                            {videoGenerationMode === 'motion-control' ? 'Connect video and image nodes as references' : 'Connect image nodes to use as start/end frames'}
-                                        </div>
-                                    ) : videoGenerationMode === 'motion-control' ? (
-                                        /* Horizontal layout for Motion Control */
-                                        <div className="flex gap-2">
-                                            {frameInputsWithUrls.map((input, index) => (
-                                                <div
-                                                    key={input.nodeId}
-                                                    className="flex-1 flex flex-col items-center gap-2 p-2 bg-neutral-800 rounded-lg border border-neutral-700/50"
-                                                >
-                                                    <div className="relative w-full aspect-video overflow-hidden rounded bg-black flex items-center justify-center">
-                                                        {input.url ? (
-                                                            <img
-                                                                src={input.url}
-                                                                alt={input.type === NodeType.VIDEO ? 'Motion Ref' : 'Character Ref'}
-                                                                className="w-full h-full object-contain"
-                                                            />
-                                                        ) : (
-                                                            <div className="text-[10px] text-neutral-600">No Preview</div>
-                                                        )}
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                                        <div className="absolute bottom-1 left-1 right-1">
-                                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded block text-center truncate ${input.type === NodeType.VIDEO
-                                                                ? 'bg-purple-600/80 text-white'
-                                                                : 'bg-blue-600/80 text-white'
+                                        {frameInputsWithUrls.length === 0 ? (
+                                            <div className="text-xs text-neutral-600 italic py-2">
+                                                {videoGenerationMode === 'motion-control' ? 'Connect video and image nodes as references' : 'Connect image nodes to use as start/end frames'}
+                                            </div>
+                                        ) : videoGenerationMode === 'motion-control' ? (
+                                            /* Horizontal layout for Motion Control */
+                                            <div className="flex gap-2">
+                                                {frameInputsWithUrls.map((input, index) => (
+                                                    <div
+                                                        key={input.nodeId}
+                                                        className="flex-1 flex flex-col items-center gap-2 p-2 bg-neutral-800 rounded-lg border border-neutral-700/50"
+                                                    >
+                                                        <div className="relative w-full aspect-video overflow-hidden rounded bg-black flex items-center justify-center">
+                                                            {input.url ? (
+                                                                <img
+                                                                    src={input.url}
+                                                                    alt={input.type === NodeType.VIDEO ? 'Motion Ref' : 'Character Ref'}
+                                                                    className="w-full h-full object-contain"
+                                                                />
+                                                            ) : (
+                                                                <div className="text-[10px] text-neutral-600">No Preview</div>
+                                                            )}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                                            <div className="absolute bottom-1 left-1 right-1">
+                                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded block text-center truncate ${input.type === NodeType.VIDEO
+                                                                    ? 'bg-purple-600/80 text-white'
+                                                                    : 'bg-blue-600/80 text-white'
+                                                                    }`}>
+                                                                    {input.type === NodeType.VIDEO ? 'MOTION REF' : 'CHARACTER REF'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            /* Vertical draggable layout for Frame-to-Frame */
+                                            <div className="space-y-2">
+                                                {frameInputsWithUrls.map((input, index) => (
+                                                    <div
+                                                        key={input.nodeId}
+                                                        draggable
+                                                        onDragStart={() => setDraggedIndex(index)}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        onDrop={() => {
+                                                            if (draggedIndex !== null) {
+                                                                handleFrameReorder(draggedIndex, index);
+                                                                setDraggedIndex(null);
+                                                            }
+                                                        }}
+                                                        onDragEnd={() => setDraggedIndex(null)}
+                                                        className={`flex items-center gap-2 p-2 bg-neutral-800 rounded-lg cursor-grab active:cursor-grabbing transition-all ${draggedIndex === index ? 'opacity-50 scale-95' : ''
+                                                            }`}
+                                                    >
+                                                        <GripVertical size={14} className="text-neutral-600" />
+                                                        <img
+                                                            src={input.url}
+                                                            alt={`Frame ${index + 1}`}
+                                                            className="w-12 h-12 object-cover rounded"
+                                                        />
+                                                        <div className="flex-1">
+                                                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${input.order === 'start'
+                                                                ? 'bg-green-600/30 text-green-400'
+                                                                : 'bg-orange-600/30 text-orange-400'
                                                                 }`}>
-                                                                {input.type === NodeType.VIDEO ? 'MOTION REF' : 'CHARACTER REF'}
+                                                                {input.order === 'start' ? 'START' : 'END'}
                                                             </span>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        /* Vertical draggable layout for Frame-to-Frame */
-                                        <div className="space-y-2">
-                                            {frameInputsWithUrls.map((input, index) => (
-                                                <div
-                                                    key={input.nodeId}
-                                                    draggable
-                                                    onDragStart={() => setDraggedIndex(index)}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    onDrop={() => {
-                                                        if (draggedIndex !== null) {
-                                                            handleFrameReorder(draggedIndex, index);
-                                                            setDraggedIndex(null);
-                                                        }
-                                                    }}
-                                                    onDragEnd={() => setDraggedIndex(null)}
-                                                    className={`flex items-center gap-2 p-2 bg-neutral-800 rounded-lg cursor-grab active:cursor-grabbing transition-all ${draggedIndex === index ? 'opacity-50 scale-95' : ''
-                                                        }`}
-                                                >
-                                                    <GripVertical size={14} className="text-neutral-600" />
-                                                    <img
-                                                        src={input.url}
-                                                        alt={`Frame ${index + 1}`}
-                                                        className="w-12 h-12 object-cover rounded"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${input.order === 'start'
-                                                            ? 'bg-green-600/30 text-green-400'
-                                                            : 'bg-orange-600/30 text-orange-400'
-                                                            }`}>
-                                                            {input.order === 'start' ? 'START' : 'END'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                                ))}
+                                            </div>
+                                        )}
 
-                                    {connectedImageNodes.length > frameInputsWithUrls.length && (
-                                        <div className="text-xs text-neutral-500 mt-1">
-                                            {connectedImageNodes.length - frameInputsWithUrls.length} more input(s) available
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
+                                        {connectedImageNodes.length > frameInputsWithUrls.length && (
+                                            <div className="text-xs text-neutral-500 mt-1">
+                                                {connectedImageNodes.length - frameInputsWithUrls.length} more input(s) available
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

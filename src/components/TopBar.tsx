@@ -123,6 +123,15 @@ export const TopBar: React.FC<TopBarProps> = ({
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-3 pointer-events-auto">
+                    {/* Auto-save notification - before save button */}
+                    {lastAutoSaveTime && !hasUnsavedChanges && (
+                        <div className={`text-[10px] font-medium px-2 py-1 rounded border animate-in fade-in duration-500 ${canvasTheme === 'dark'
+                            ? 'text-neutral-500 border-neutral-800'
+                            : 'text-neutral-400 border-neutral-100'
+                            }`}>
+                            Auto-saved {new Date(lastAutoSaveTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
                     <button
                         onClick={onSave}
                         className={`text-sm px-5 py-2.5 rounded-full flex items-center gap-2 transition-colors font-medium border ${canvasTheme === 'dark'
@@ -157,15 +166,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
                         )}
                     </button>
-
-                    {lastAutoSaveTime && !hasUnsavedChanges && (
-                        <div className={`text-[10px] font-medium px-2 py-1 rounded border animate-in fade-in duration-500 ${canvasTheme === 'dark'
-                            ? 'text-neutral-500 border-neutral-800'
-                            : 'text-neutral-400 border-neutral-100'
-                            }`}>
-                            Auto-saved {new Date(lastAutoSaveTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                    )}
                 </div>
             </div>
 

@@ -6,6 +6,7 @@
  */
 
 import { fal } from '@fal-ai/client';
+import sharp from 'sharp';
 
 // ============================================================================
 // CONFIGURATION
@@ -13,28 +14,129 @@ import { fal } from '@fal-ai/client';
 
 const MOTION_CONTROL_MODEL = 'fal-ai/kling-video/v2.6/pro/motion-control';
 
+// Fal.ai upload limit is 10MB
+const MAX_FILE_SIZE = 9 * 1024 * 1024; // 9MB to be safe (under 10MB limit)
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
 /**
- * Convert base64 data URI to a Blob/File for fal.ai upload
+ * Convert base64 data URI to a Buffer
  */
-function base64ToBlob(base64Data, fileType = 'image') {
-    // Extract raw base64 and mime type
+function base64ToBuffer(base64Data) {
     let rawBase64 = base64Data;
-    let mimeType = fileType === 'video' ? 'video/mp4' : 'image/png';
 
     if (base64Data.startsWith('data:')) {
         const match = base64Data.match(/^data:([^;]+);base64,(.+)$/);
         if (match) {
-            mimeType = match[1];
             rawBase64 = match[2];
         }
     }
 
-    // Convert to buffer
-    const buffer = Buffer.from(rawBase64, 'base64');
+    return Buffer.from(rawBase64, 'base64');
+}
+
+/**
+ * Compress an image buffer to fit within size and dimension limits
+ * Uses sharp to resize and compress the image
+ * 
+ * Fal.ai limits:
+ * - Max file size: 10MB
+ * - Max dimensions: 3850x3850 pixels
+ */
+async function compressImage(imageBuffer, targetSize = MAX_FILE_SIZE) {
+    const originalSize = imageBuffer.length;
+    const MAX_DIMENSION = 3840; // Just under 3850 to be safe
+
+    // Get image metadata
+    const metadata = await sharp(imageBuffer).metadata();
+    let { width, height } = metadata;
+
+    console.log(`[Fal.ai] Original image: ${width}x${height}, ${Math.round(originalSize / 1024)} KB`);
+
+    // Step 1: Resize if dimensions exceed the limit
+    let workingBuffer = imageBuffer;
+    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        const newWidth = Math.round(width * scale);
+        const newHeight = Math.round(height * scale);
+
+        console.log(`[Fal.ai] Resizing from ${width}x${height} to ${newWidth}x${newHeight} (max ${MAX_DIMENSION})`);
+
+        workingBuffer = await sharp(imageBuffer)
+            .resize(newWidth, newHeight, { fit: 'inside' })
+            .jpeg({ quality: 90 })
+            .toBuffer();
+
+        width = newWidth;
+        height = newHeight;
+        console.log(`[Fal.ai] After resize: ${Math.round(workingBuffer.length / 1024)} KB`);
+    }
+
+    // Step 2: Check if file size is OK
+    if (workingBuffer.length <= targetSize) {
+        console.log(`[Fal.ai] Image size OK: ${Math.round(workingBuffer.length / 1024)} KB`);
+        return workingBuffer;
+    }
+
+    console.log(`[Fal.ai] Image still too large (${Math.round(workingBuffer.length / 1024)} KB), compressing further...`);
+
+    // Step 3: Progressively compress until under the size limit
+    let quality = 80;
+    let scale = 1.0;
+    let compressed = workingBuffer;
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const newWidth = Math.round(width * scale);
+        const newHeight = Math.round(height * scale);
+
+        compressed = await sharp(workingBuffer)
+            .resize(newWidth, newHeight, { fit: 'inside' })
+            .jpeg({ quality, mozjpeg: true })
+            .toBuffer();
+
+        console.log(`[Fal.ai] Compression attempt ${attempt + 1}: ${Math.round(compressed.length / 1024)} KB (${newWidth}x${newHeight}, quality: ${quality})`);
+
+        if (compressed.length <= targetSize) {
+            break;
+        }
+
+        // Reduce quality and scale for next attempt
+        quality = Math.max(50, quality - 10);
+        scale = scale * 0.8;
+    }
+
+    console.log(`[Fal.ai] Final size: ${Math.round(compressed.length / 1024)} KB (from ${Math.round(originalSize / 1024)} KB)`);
+
+    return compressed;
+}
+
+/**
+ * Convert base64 data URI to a Blob/File for fal.ai upload
+ * Includes compression for large images (size and dimensions)
+ */
+async function base64ToBlob(base64Data, fileType = 'image') {
+    let buffer = base64ToBuffer(base64Data);
+
+    // Determine mime type
+    let mimeType = fileType === 'video' ? 'video/mp4' : 'image/png';
+
+    if (base64Data.startsWith('data:')) {
+        const match = base64Data.match(/^data:([^;]+);base64,/);
+        if (match) {
+            mimeType = match[1];
+        }
+    }
+
+    // Process all images through compressImage to check both size AND dimensions
+    // The compressImage function handles Fal.ai limits:
+    // - Max file size: 10MB
+    // - Max dimensions: 3850x3850 pixels
+    if (fileType === 'image') {
+        buffer = await compressImage(buffer);
+        mimeType = 'image/jpeg'; // Processed images are JPEG
+    }
 
     // Create a Blob-like object that fal.ai client can handle
     return new Blob([buffer], { type: mimeType });
@@ -52,7 +154,7 @@ function base64ToBlob(base64Data, fileType = 'image') {
  * @param {string} params.characterImageBase64 - Base64 character reference image (or data URI)
  * @param {string} params.motionVideoBase64 - Base64 motion reference video (or data URI)
  * @param {string} params.characterOrientation - 'image' or 'video' (default: 'video')
- * @param {boolean} params.keepOriginalSound - Keep audio from reference video
+ * @param {boolean} params.keepOriginalSound - Keep audio from reference video (default: true per API)
  * @param {string} params.apiKey - Fal.ai API key
  * @returns {Promise<string>} URL of the generated video
  */
@@ -61,7 +163,7 @@ export async function generateFalMotionControl({
     characterImageBase64,
     motionVideoBase64,
     characterOrientation = 'video',
-    keepOriginalSound = false,
+    keepOriginalSound = true, // Match API default
     apiKey
 }) {
     console.log('\n========================================');
@@ -89,11 +191,14 @@ export async function generateFalMotionControl({
         credentials: apiKey
     });
 
-    // Upload files to fal.ai storage
-    console.log('[Fal.ai Motion Control] Uploading files to fal.ai storage...');
+    // Upload files to fal.ai storage (with compression for large images)
+    console.log('[Fal.ai Motion Control] Processing and uploading files to fal.ai storage...');
 
-    const imageBlob = base64ToBlob(characterImageBase64, 'image');
-    const videoBlob = base64ToBlob(motionVideoBase64, 'video');
+    const imageBlob = await base64ToBlob(characterImageBase64, 'image');
+    const videoBlob = await base64ToBlob(motionVideoBase64, 'video');
+
+    console.log(`[Fal.ai] Image blob size: ${Math.round(imageBlob.size / 1024)} KB`);
+    console.log(`[Fal.ai] Video blob size: ${Math.round(videoBlob.size / 1024)} KB`);
 
     const [imageUrl, videoUrl] = await Promise.all([
         fal.storage.upload(imageBlob).then(url => {
@@ -106,43 +211,52 @@ export async function generateFalMotionControl({
         })
     ]);
 
-    // Prepare input
+    // Prepare input - match the official API schema from docs
     const input = {
         image_url: imageUrl,
         video_url: videoUrl,
-        character_orientation: characterOrientation,
-        keep_original_sound: keepOriginalSound
+        keep_original_sound: keepOriginalSound,
+        character_orientation: characterOrientation
     };
 
+    // Add prompt if provided (optional per docs)
     if (prompt) {
         input.prompt = prompt;
     }
 
     console.log('[Fal.ai Motion Control] Submitting request...');
-    console.log(`[Fal.ai Motion Control] Image URL: ${imageUrl}`);
-    console.log(`[Fal.ai Motion Control] Video URL: ${videoUrl}`);
+    console.log('[Fal.ai Motion Control] Full input:', JSON.stringify(input, null, 2));
 
     // Track last status to avoid duplicate logs
     let lastStatus = '';
 
     // Submit and wait for result using fal.subscribe
-    const result = await fal.subscribe(MOTION_CONTROL_MODEL, {
-        input,
-        logs: true,
-        onQueueUpdate: (update) => {
-            // Only log when status changes
-            if (update.status !== lastStatus) {
-                console.log(`[Fal.ai] Status: ${update.status}`);
-                lastStatus = update.status;
+    let result;
+    try {
+        result = await fal.subscribe(MOTION_CONTROL_MODEL, {
+            input,
+            logs: true,
+            onQueueUpdate: (update) => {
+                // Only log when status changes
+                if (update.status !== lastStatus) {
+                    console.log(`[Fal.ai] Status: ${update.status}`);
+                    lastStatus = update.status;
+                }
+                // Log actual progress messages if available
+                if (update.status === 'IN_PROGRESS' && update.logs && update.logs.length > 0) {
+                    update.logs.map((log) => log.message).forEach(msg => {
+                        if (msg) console.log(`[Fal.ai Log] ${msg}`);
+                    });
+                }
             }
-            // Log actual progress messages if available
-            if (update.status === 'IN_PROGRESS' && update.logs && update.logs.length > 0) {
-                update.logs.map((log) => log.message).forEach(msg => {
-                    if (msg) console.log(`[Fal.ai Log] ${msg}`);
-                });
-            }
-        }
-    });
+        });
+    } catch (falError) {
+        console.error('[Fal.ai Motion Control] Error details:');
+        console.error('  Status:', falError.status);
+        console.error('  Body:', JSON.stringify(falError.body, null, 2));
+        console.error('  Request ID:', falError.requestId);
+        throw falError;
+    }
 
     // Extract video URL from result
     const resultVideoUrl = result.data?.video?.url;
